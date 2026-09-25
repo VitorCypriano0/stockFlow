@@ -48,6 +48,8 @@ Para abrir o console do H2 durante o desenvolvimento, use http://localhost:8080/
 
 ## Executar no Windows
 
+Requisitos: JDK 17 com `JAVA_HOME` configurado, Node.js 20.9 ou superior e npm.
+
 Abra um terminal na pasta do projeto e inicie o backend:
 
     .\mvnw.cmd spring-boot:run
