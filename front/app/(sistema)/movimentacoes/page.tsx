@@ -13,6 +13,7 @@ export default function MovimentacoesPage() {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
 
+  // Faz o GET da API e preenche a grade com entradas e saídas do estoque.
   const carregar = useCallback(async () => {
     try {
       const { data } = await api.get<Movimentacao[]>("/movimentacoes");

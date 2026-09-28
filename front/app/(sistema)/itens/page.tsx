@@ -12,6 +12,7 @@ export default function ItensPage() {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
 
+  // Faz o GET da API e preenche a grade com o saldo atual de cada item.
   const carregar = useCallback(async () => {
     try {
       const { data } = await api.get<Item[]>("/itens");

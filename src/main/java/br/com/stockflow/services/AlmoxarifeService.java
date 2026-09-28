@@ -4,9 +4,11 @@ import br.com.stockflow.dto.AlmoxarifeRequest;
 import br.com.stockflow.dto.AlmoxarifeResponse;
 import br.com.stockflow.entities.Almoxarife;
 import br.com.stockflow.exceptions.ConflitoException;
+import br.com.stockflow.exceptions.RegraNegocioException;
 import br.com.stockflow.exceptions.RecursoNaoEncontradoException;
 import br.com.stockflow.repository.AlmoxarifeRepository;
 import java.util.List;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,9 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AlmoxarifeService {
 
     private final AlmoxarifeRepository repository;
+    private final PasswordEncoder passwordEncoder;
 
-    public AlmoxarifeService(AlmoxarifeRepository repository) {
+    public AlmoxarifeService(AlmoxarifeRepository repository, PasswordEncoder passwordEncoder) {
         this.repository = repository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
@@ -33,6 +37,7 @@ public class AlmoxarifeService {
 
     @Transactional
     public AlmoxarifeResponse criar(AlmoxarifeRequest requisicao) {
+        validarSenha(requisicao.senha(), true);
         String cpf = limpar(requisicao.cpf());
         String email = limpar(requisicao.email()).toLowerCase();
         if (repository.existsByCpfIgnoreCase(cpf)) {
@@ -44,7 +49,20 @@ public class AlmoxarifeService {
 
         Almoxarife almoxarife = new Almoxarife();
         copiarDados(almoxarife, requisicao, cpf, email);
+        almoxarife.setSenhaHash(passwordEncoder.encode(requisicao.senha()));
         return paraResposta(repository.save(almoxarife));
+    }
+
+    /** Cria uma conta ou permite que um registro antigo escolha a senha pela primeira vez. */
+    @Transactional
+    public AlmoxarifeResponse registrar(AlmoxarifeRequest requisicao) {
+        validarSenha(requisicao.senha(), true);
+        String cpf = limpar(requisicao.cpf());
+        String email = limpar(requisicao.email()).toLowerCase();
+
+        return repository.findByEmailIgnoreCase(email)
+                .map(existente -> ativarRegistroAntigo(existente, cpf, requisicao.senha()))
+                .orElseGet(() -> criar(requisicao));
     }
 
     @Transactional
@@ -61,6 +79,10 @@ public class AlmoxarifeService {
         }
 
         copiarDados(almoxarife, requisicao, cpf, email);
+        if (requisicao.senha() != null && !requisicao.senha().isBlank()) {
+            validarSenha(requisicao.senha(), false);
+            almoxarife.setSenhaHash(passwordEncoder.encode(requisicao.senha()));
+        }
         return paraResposta(repository.save(almoxarife));
     }
 
@@ -81,6 +103,28 @@ public class AlmoxarifeService {
         destino.setCpf(cpf);
         destino.setEmail(email);
         destino.setTelefone(limpar(origem.telefone()));
+    }
+
+    private AlmoxarifeResponse ativarRegistroAntigo(Almoxarife almoxarife, String cpf, String senha) {
+        if (almoxarife.isAtivo()
+                && almoxarife.getSenhaHash() == null
+                && almoxarife.getCpf().equalsIgnoreCase(cpf)) {
+            almoxarife.setSenhaHash(passwordEncoder.encode(senha));
+            return paraResposta(repository.save(almoxarife));
+        }
+        throw new ConflitoException("Este e-mail já possui uma conta. Confira os dados ou faça login.");
+    }
+
+    private void validarSenha(String senha, boolean obrigatoria) {
+        if (senha == null || senha.isBlank()) {
+            if (obrigatoria) {
+                throw new RegraNegocioException("A senha é obrigatória para criar a conta.");
+            }
+            return;
+        }
+        if (senha.length() < 8) {
+            throw new RegraNegocioException("A senha deve ter pelo menos 8 caracteres.");
+        }
     }
 
     private AlmoxarifeResponse paraResposta(Almoxarife almoxarife) {

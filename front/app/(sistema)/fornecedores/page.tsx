@@ -12,6 +12,7 @@ export default function FornecedoresPage() {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
 
+  // Faz o GET da API e preenche a grade com os fornecedores cadastrados.
   const carregar = useCallback(async () => {
     try {
       const { data } = await api.get<Fornecedor[]>("/fornecedores");

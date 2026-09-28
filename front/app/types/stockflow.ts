@@ -12,6 +12,14 @@ export interface AlmoxarifeInput {
   cpf: string;
   email: string;
   telefone: string | null;
+  senha?: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  tipo: "Bearer";
+  expiraEm: string;
+  almoxarife: Almoxarife;
 }
 
 export interface Fornecedor {

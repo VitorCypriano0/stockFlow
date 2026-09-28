@@ -24,10 +24,10 @@ export default function PaginaInicial() {
           <span className="text-lg font-bold tracking-tight">Stock Flow</span>
         </Link>
         <Link
-          href="/home"
+          href="/login"
           className="rounded-xl bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800"
         >
-          Acessar painel
+          Fazer login
         </Link>
       </header>
 
@@ -44,10 +44,10 @@ export default function PaginaInicial() {
             com um histórico simples de consultar.
           </p>
           <Link
-            href="/home"
+            href="/login"
             className="mt-8 inline-flex rounded-xl bg-emerald-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
           >
-            Abrir visão geral
+            Entrar no sistema
           </Link>
         </div>
         <div className="rounded-3xl bg-emerald-950 p-7 text-white shadow-xl sm:p-9">

@@ -11,6 +11,7 @@ export default function HistoricoPage() {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
 
+  // Faz o GET do endpoint de auditoria para mostrar as alterações do estoque.
   const carregar = useCallback(async () => {
     try {
       const { data } = await api.get<RegistroHistorico[]>("/historico");

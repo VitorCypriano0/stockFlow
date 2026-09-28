@@ -30,6 +30,11 @@ public class Almoxarife {
     @Column(nullable = false, unique = true)
     private String email;
 
+    // A senha nunca é armazenada em texto puro; o campo guarda somente o hash BCrypt.
+    // Pode ficar vazio em registros antigos até o primeiro cadastro/autenticação.
+    @Column(name = "senha_hash")
+    private String senhaHash;
+
     private String telefone;
 
     @Column(nullable = false)

@@ -16,6 +16,7 @@ const formularioVazio: AlmoxarifeInput = {
   cpf: "",
   email: "",
   telefone: "",
+  senha: "",
 };
 
 export default function AlmoxarifeForm({ id }: AlmoxarifeFormProps) {
@@ -36,6 +37,7 @@ export default function AlmoxarifeForm({ id }: AlmoxarifeFormProps) {
           cpf: data.cpf,
           email: data.email,
           telefone: data.telefone ?? "",
+          senha: "",
         });
       })
       .catch((error: unknown) => {
@@ -55,6 +57,7 @@ export default function AlmoxarifeForm({ id }: AlmoxarifeFormProps) {
       cpf: formulario.cpf.trim(),
       email: formulario.email.trim(),
       telefone: formulario.telefone?.trim() || null,
+      senha: formulario.senha?.trim() || undefined,
     };
 
     try {
@@ -125,6 +128,20 @@ export default function AlmoxarifeForm({ id }: AlmoxarifeFormProps) {
               setFormulario({ ...formulario, telefone: event.target.value })
             }
             autoComplete="tel"
+          />
+        </Field>
+        <Field
+          label={id === undefined ? "Senha de acesso" : "Nova senha"}
+          descricao={id === undefined ? "Use pelo menos 8 caracteres." : "Deixe em branco para manter a senha atual."}
+        >
+          <input
+            className={fieldClasses}
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            value={formulario.senha ?? ""}
+            onChange={(event) => setFormulario({ ...formulario, senha: event.target.value })}
+            required={id === undefined}
           />
         </Field>
       </div>

@@ -3,11 +3,8 @@ package br.com.stockflow.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-public record AlmoxarifeRequest(
-        @NotBlank String nome,
-        @NotBlank String cpf,
+public record LoginRequest(
         @Email @NotBlank String email,
-        String telefone,
-        String senha
+        @NotBlank String senha
 ) {
 }

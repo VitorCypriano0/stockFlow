@@ -19,6 +19,11 @@ public class ApiExceptionHandler {
         return resposta(HttpStatus.NOT_FOUND, erro.getMessage());
     }
 
+    @ExceptionHandler(CredenciaisInvalidasException.class)
+    public ResponseEntity<ApiError> credenciaisInvalidas(CredenciaisInvalidasException erro) {
+        return resposta(HttpStatus.UNAUTHORIZED, erro.getMessage());
+    }
+
     @ExceptionHandler({
             RegraNegocioException.class,
             MethodArgumentNotValidException.class,

@@ -2,6 +2,7 @@ package br.com.stockflow.repository;
 
 import br.com.stockflow.entities.Almoxarife;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AlmoxarifeRepository extends JpaRepository<Almoxarife, Long> {
@@ -13,6 +14,8 @@ public interface AlmoxarifeRepository extends JpaRepository<Almoxarife, Long> {
     boolean existsByEmailIgnoreCase(String email);
 
     boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
+
+    Optional<Almoxarife> findByEmailIgnoreCase(String email);
 
     List<Almoxarife> findAllByOrderByNomeAsc();
 }
