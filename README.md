@@ -38,6 +38,16 @@ As senhas são gravadas como hash BCrypt. O token tem duração configurável em
 
 Com o backend ativo, a interface Swagger fica em <http://localhost:8080/swagger-ui.html>.
 
+### Demonstrar o CRUD pela Swagger UI
+
+1. Abra `POST /api/auth/registrar` e crie uma conta de almoxarife, ou use uma conta já cadastrada.
+2. Execute `POST /api/auth/login` com o e-mail e a senha. Copie o valor de `token` da resposta.
+3. Clique em **Authorize**, cole o token e confirme. A interface envia o cabeçalho `Authorization: Bearer ...` nas rotas protegidas.
+4. Para demonstrar o CRUD de itens, crie primeiro um fornecedor em `POST /api/fornecedores` e use o `id` retornado em `fornecedorId` no `POST /api/itens`.
+5. Use `GET /api/itens` para listar e `PUT /api/itens/{id}` para editar o item. A resposta de criação informa o `id` para as próximas operações.
+
+O botão **Authorize** envia o JWT apenas nas operações marcadas como protegidas. O endpoint de login permanece público para permitir obter o token.
+
 ## Executar no Windows
 
 Requisitos: JDK 17, PostgreSQL, Node.js 20.9 ou superior e npm.

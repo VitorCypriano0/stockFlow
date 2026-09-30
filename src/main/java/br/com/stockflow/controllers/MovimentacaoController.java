@@ -5,6 +5,7 @@ import br.com.stockflow.dto.MovimentacaoRequest;
 import br.com.stockflow.dto.MovimentacaoResponse;
 import br.com.stockflow.services.MovimentacaoService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/movimentacoes")
+@SecurityRequirement(name = "bearerAuth")
 public class MovimentacaoController {
 
     private final MovimentacaoService service;

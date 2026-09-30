@@ -4,6 +4,7 @@ import br.com.stockflow.dto.ItemRequest;
 import br.com.stockflow.dto.ItemResponse;
 import br.com.stockflow.services.ItemService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/itens")
+@SecurityRequirement(name = "bearerAuth")
 public class ItemController {
 
     private final ItemService service;

@@ -4,6 +4,7 @@ import br.com.stockflow.dto.FornecedorRequest;
 import br.com.stockflow.dto.FornecedorResponse;
 import br.com.stockflow.services.FornecedorService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/fornecedores")
+@SecurityRequirement(name = "bearerAuth")
 public class FornecedorController {
 
     private final FornecedorService service;
