@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Positive;
 
 public record MovimentacaoRequest(
         @NotNull Long itemId,
-        @NotNull Long almoxarifeId,
         @NotNull TipoMovimentacao tipo,
         @NotNull @Positive Integer quantidade,
         String observacao

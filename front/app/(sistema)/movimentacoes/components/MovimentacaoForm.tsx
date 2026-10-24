@@ -7,7 +7,6 @@ import { Field, fieldClasses } from "@/app/components/Field";
 import FormMessage from "@/app/components/FormMessage";
 import { api, mensagemDeErro } from "@/app/lib/api";
 import type {
-  Almoxarife,
   Item,
   Movimentacao,
   MovimentacaoInput,
@@ -20,7 +19,6 @@ interface MovimentacaoFormProps {
 
 interface MovimentacaoFormState {
   itemId: string;
-  almoxarifeId: string;
   tipo: TipoMovimentacao;
   quantidade: string;
   observacao: string;
@@ -28,7 +26,6 @@ interface MovimentacaoFormState {
 
 const formularioVazio: MovimentacaoFormState = {
   itemId: "",
-  almoxarifeId: "",
   tipo: "ENTRADA",
   quantidade: "1",
   observacao: "",
@@ -39,7 +36,6 @@ export default function MovimentacaoForm({ id }: MovimentacaoFormProps) {
   const [formulario, setFormulario] =
     useState<MovimentacaoFormState>(formularioVazio);
   const [itens, setItens] = useState<Item[]>([]);
-  const [almoxarifes, setAlmoxarifes] = useState<Almoxarife[]>([]);
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -49,20 +45,15 @@ export default function MovimentacaoForm({ id }: MovimentacaoFormProps) {
 
     async function carregar() {
       try {
-        const [itensResponse, almoxarifesResponse, movimentacaoResponse] =
-          await Promise.all([
-            api.get<Item[]>("/itens"),
-            api.get<Almoxarife[]>("/almoxarifes"),
-            id === undefined
-              ? Promise.resolve(null)
-              : api.get<Movimentacao>("/movimentacoes/" + id),
-          ]);
+        const [itensResponse, movimentacaoResponse] = await Promise.all([
+          api.get<Item[]>("/itens"),
+          id === undefined
+            ? Promise.resolve(null)
+            : api.get<Movimentacao>("/movimentacoes/" + id),
+        ]);
         if (!ativo) return;
 
         setItens(itensResponse.data.filter((item) => item.ativo));
-        setAlmoxarifes(
-          almoxarifesResponse.data.filter((almoxarife) => almoxarife.ativo),
-        );
 
         if (movimentacaoResponse) {
           const movimentacao = movimentacaoResponse.data;
@@ -71,7 +62,6 @@ export default function MovimentacaoForm({ id }: MovimentacaoFormProps) {
           }
           setFormulario({
             itemId: String(movimentacao.itemId),
-            almoxarifeId: String(movimentacao.almoxarifeId),
             tipo: movimentacao.tipo,
             quantidade: String(movimentacao.quantidade),
             observacao: movimentacao.observacao ?? "",
@@ -101,7 +91,6 @@ export default function MovimentacaoForm({ id }: MovimentacaoFormProps) {
 
     const dados: MovimentacaoInput = {
       itemId: Number(formulario.itemId),
-      almoxarifeId: Number(formulario.almoxarifeId),
       tipo: formulario.tipo,
       quantidade: Number(formulario.quantidade),
       observacao: formulario.observacao.trim() || null,
@@ -128,8 +117,7 @@ export default function MovimentacaoForm({ id }: MovimentacaoFormProps) {
   const bloqueado =
     salvando ||
     Boolean(erro && id !== undefined && erro.includes("cancelada")) ||
-    itens.length === 0 ||
-    almoxarifes.length === 0;
+    itens.length === 0;
 
   if (carregando) {
     return <p className="text-sm text-slate-600">Carregando dados...</p>;
@@ -140,14 +128,16 @@ export default function MovimentacaoForm({ id }: MovimentacaoFormProps) {
       onSubmit={salvar}
       className="max-w-3xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
     >
-      {itens.length === 0 || almoxarifes.length === 0 ? (
+      {itens.length === 0 ? (
         <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Para registrar uma movimentação, cadastre pelo menos um item e um almoxarife ativo.{" "}
+          Para registrar uma movimentação, cadastre pelo menos um item ativo.{" "}
           <Link className="font-bold underline" href="/itens/novo">Cadastrar item</Link>
-          {" · "}
-          <Link className="font-bold underline" href="/almoxarifes/novo">Cadastrar almoxarife</Link>
         </div>
       ) : null}
+
+      <p className="mb-5 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        O almoxarife responsável será identificado pela conta autenticada.
+      </p>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Tipo de movimentação">
@@ -195,23 +185,6 @@ export default function MovimentacaoForm({ id }: MovimentacaoFormProps) {
             }
             required
           />
-        </Field>
-        <Field label="Almoxarife responsável">
-          <select
-            className={fieldClasses}
-            value={formulario.almoxarifeId}
-            onChange={(event) =>
-              setFormulario({ ...formulario, almoxarifeId: event.target.value })
-            }
-            required
-          >
-            <option value="">Selecione um almoxarife</option>
-            {almoxarifes.map((almoxarife) => (
-              <option key={almoxarife.id} value={almoxarife.id}>
-                {almoxarife.nome}
-              </option>
-            ))}
-          </select>
         </Field>
         {itemSelecionado ? (
           <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 sm:col-span-2">

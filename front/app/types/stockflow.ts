@@ -79,7 +79,6 @@ export interface Movimentacao {
 
 export interface MovimentacaoInput {
   itemId: number;
-  almoxarifeId: number;
   tipo: TipoMovimentacao;
   quantidade: number;
   observacao: string | null;

@@ -52,9 +52,9 @@ public class MovimentacaoService {
     }
 
     @Transactional
-    public MovimentacaoResponse criar(MovimentacaoRequest requisicao) {
+    public MovimentacaoResponse criar(MovimentacaoRequest requisicao, Long almoxarifeAutenticadoId) {
         Item item = obterItemAtivo(requisicao.itemId());
-        Almoxarife almoxarife = obterAlmoxarifeAtivo(requisicao.almoxarifeId());
+        Almoxarife almoxarife = obterAlmoxarifeAtivo(almoxarifeAutenticadoId);
         aplicar(item, requisicao.tipo(), requisicao.quantidade());
         itemRepository.save(item);
 
@@ -63,12 +63,16 @@ public class MovimentacaoService {
         movimentacao.setDataHora(LocalDateTime.now());
         movimentacao.setAtiva(true);
         movimentacao = movimentacaoRepository.save(movimentacao);
-        registrarHistorico(movimentacao, "CRIADA");
+        registrarHistorico(movimentacao, "CRIADA", almoxarife);
         return paraResposta(movimentacao);
     }
 
     @Transactional
-    public MovimentacaoResponse atualizar(Long id, MovimentacaoRequest requisicao) {
+    public MovimentacaoResponse atualizar(
+            Long id,
+            MovimentacaoRequest requisicao,
+            Long almoxarifeAutenticadoId
+    ) {
         Movimentacao movimentacao = obter(id);
         if (!movimentacao.isAtiva()) {
             throw new RegraNegocioException("Uma movimentação cancelada não pode ser alterada.");
@@ -76,27 +80,28 @@ public class MovimentacaoService {
 
         reverter(movimentacao);
         Item item = obterItemAtivo(requisicao.itemId());
-        Almoxarife almoxarife = obterAlmoxarifeAtivo(requisicao.almoxarifeId());
+        Almoxarife almoxarife = obterAlmoxarifeAtivo(almoxarifeAutenticadoId);
         aplicar(item, requisicao.tipo(), requisicao.quantidade());
         itemRepository.save(item);
 
         preencher(movimentacao, item, almoxarife, requisicao);
         movimentacao = movimentacaoRepository.save(movimentacao);
-        registrarHistorico(movimentacao, "ATUALIZADA");
+        registrarHistorico(movimentacao, "ATUALIZADA", almoxarife);
         return paraResposta(movimentacao);
     }
 
     @Transactional
-    public void excluir(Long id) {
+    public void excluir(Long id, Long almoxarifeAutenticadoId) {
         Movimentacao movimentacao = obter(id);
         if (!movimentacao.isAtiva()) {
             throw new RegraNegocioException("Esta movimentação já foi cancelada.");
         }
 
+        Almoxarife almoxarife = obterAlmoxarifeAtivo(almoxarifeAutenticadoId);
         reverter(movimentacao);
         movimentacao.setAtiva(false);
         movimentacaoRepository.save(movimentacao);
-        registrarHistorico(movimentacao, "CANCELADA");
+        registrarHistorico(movimentacao, "CANCELADA", almoxarife);
     }
 
     @Transactional(readOnly = true)
@@ -145,15 +150,15 @@ public class MovimentacaoService {
         destino.setObservacao(limpar(requisicao.observacao()));
     }
 
-    private void registrarHistorico(Movimentacao movimentacao, String acao) {
+    private void registrarHistorico(Movimentacao movimentacao, String acao, Almoxarife almoxarife) {
         MovimentacaoHistorico registro = new MovimentacaoHistorico();
         registro.setMovimentacaoId(movimentacao.getId());
         registro.setAcao(acao);
         registro.setTipo(movimentacao.getTipo().name());
         registro.setItemNome(movimentacao.getItem().getNome());
         registro.setQuantidade(movimentacao.getQuantidade());
-        registro.setAlmoxarifeId(movimentacao.getAlmoxarife().getId());
-        registro.setAlmoxarifeNome(movimentacao.getAlmoxarife().getNome());
+        registro.setAlmoxarifeId(almoxarife.getId());
+        registro.setAlmoxarifeNome(almoxarife.getNome());
         registro.setDataHora(LocalDateTime.now());
         registro.setObservacao(movimentacao.getObservacao());
         historicoRepository.save(registro);
