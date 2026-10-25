@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import FormMessage from "@/app/components/FormMessage";
 import { Field, fieldClasses } from "@/app/components/Field";
 import { api, mensagemDeErro } from "@/app/lib/api";
+import { cpfValido } from "@/app/lib/cpf";
 import type { AlmoxarifeInput } from "@/app/types/stockflow";
 
 interface CadastroInput extends Omit<AlmoxarifeInput, "senha"> {
@@ -28,13 +29,20 @@ export default function CadastroPage() {
   async function cadastrar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErro("");
+
+    const cpf = formulario.cpf.trim();
+    if (!cpfValido(cpf)) {
+      setErro("Informe um CPF válido.");
+      return;
+    }
+
     setSalvando(true);
 
     try {
       await api.post("/auth/registrar", {
         ...formulario,
         nome: formulario.nome.trim(),
-        cpf: formulario.cpf.trim(),
+        cpf,
         email: formulario.email.trim(),
         telefone: formulario.telefone?.trim() || null,
       });

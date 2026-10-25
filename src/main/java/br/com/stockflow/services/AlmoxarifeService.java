@@ -7,6 +7,7 @@ import br.com.stockflow.exceptions.ConflitoException;
 import br.com.stockflow.exceptions.RegraNegocioException;
 import br.com.stockflow.exceptions.RecursoNaoEncontradoException;
 import br.com.stockflow.repository.AlmoxarifeRepository;
+import br.com.stockflow.validation.CpfValidador;
 import java.util.List;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,7 @@ public class AlmoxarifeService {
     @Transactional
     public AlmoxarifeResponse criar(AlmoxarifeRequest requisicao) {
         validarSenha(requisicao.senha(), true);
-        String cpf = limpar(requisicao.cpf());
+        String cpf = validarCpf(requisicao.cpf());
         String email = limpar(requisicao.email()).toLowerCase();
         if (repository.existsByCpfIgnoreCase(cpf)) {
             throw new ConflitoException("Já existe um almoxarife com este CPF.");
@@ -57,7 +58,7 @@ public class AlmoxarifeService {
     @Transactional
     public AlmoxarifeResponse registrar(AlmoxarifeRequest requisicao) {
         validarSenha(requisicao.senha(), true);
-        String cpf = limpar(requisicao.cpf());
+        String cpf = validarCpf(requisicao.cpf());
         String email = limpar(requisicao.email()).toLowerCase();
 
         return repository.findByEmailIgnoreCase(email)
@@ -68,7 +69,7 @@ public class AlmoxarifeService {
     @Transactional
     public AlmoxarifeResponse atualizar(Long id, AlmoxarifeRequest requisicao) {
         Almoxarife almoxarife = obter(id);
-        String cpf = limpar(requisicao.cpf());
+        String cpf = validarCpf(requisicao.cpf());
         String email = limpar(requisicao.email()).toLowerCase();
 
         if (repository.existsByCpfIgnoreCaseAndIdNot(cpf, id)) {
@@ -153,5 +154,13 @@ public class AlmoxarifeService {
 
     private String limpar(String texto) {
         return texto == null ? null : texto.trim();
+    }
+
+    private String validarCpf(String cpf) {
+        String valor = limpar(cpf);
+        if (!CpfValidador.ehValido(valor)) {
+            throw new RegraNegocioException("Informe um CPF válido.");
+        }
+        return valor;
     }
 }
