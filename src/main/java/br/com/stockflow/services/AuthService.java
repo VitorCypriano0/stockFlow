@@ -42,6 +42,7 @@ public class AuthService {
         String email = requisicao.email().trim().toLowerCase();
         Almoxarife almoxarife = repository.findByEmailIgnoreCase(email)
                 .filter(Almoxarife::isAtivo)
+                .filter(usuario -> !usuario.isBloqueado())
                 .filter(usuario -> usuario.getSenhaHash() != null
                         && passwordEncoder.matches(requisicao.senha(), usuario.getSenhaHash()))
                 .orElseThrow(CredenciaisInvalidasException::new);
@@ -71,7 +72,8 @@ public class AuthService {
                 almoxarife.getCpf(),
                 almoxarife.getEmail(),
                 almoxarife.getTelefone(),
-                almoxarife.isAtivo()
+                almoxarife.isAtivo(),
+                almoxarife.isBloqueado()
         );
     }
 }

@@ -1,17 +1,21 @@
 interface StatusPillProps {
   ativo: boolean;
+  bloqueado?: boolean;
 }
 
-export default function StatusPill({ ativo }: StatusPillProps) {
+export default function StatusPill({ ativo, bloqueado = false }: StatusPillProps) {
+  const texto = !ativo ? "Inativo" : bloqueado ? "Bloqueado" : "Ativo";
+  const classes = !ativo
+    ? "bg-slate-100 text-slate-600"
+    : bloqueado
+      ? "bg-amber-100 text-amber-800"
+      : "bg-emerald-100 text-emerald-800";
+
   return (
     <span
-      className={
-        ativo
-          ? "inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800"
-          : "inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600"
-      }
+      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${classes}`}
     >
-      {ativo ? "Ativo" : "Inativo"}
+      {texto}
     </span>
   );
 }

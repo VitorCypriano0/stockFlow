@@ -1,5 +1,6 @@
 package br.com.stockflow.controllers;
 
+import br.com.stockflow.dto.AlmoxarifeBloqueioRequest;
 import br.com.stockflow.dto.AlmoxarifeRequest;
 import br.com.stockflow.dto.AlmoxarifeResponse;
 import br.com.stockflow.services.AlmoxarifeService;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -55,5 +57,13 @@ public class AlmoxarifeController {
     public ResponseEntity<Void> excluir(@PathVariable Long id) {
         service.excluir(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/bloqueio")
+    public AlmoxarifeResponse atualizarBloqueio(
+            @PathVariable Long id,
+            @Valid @RequestBody AlmoxarifeBloqueioRequest requisicao
+    ) {
+        return service.atualizarBloqueio(id, requisicao.bloqueado());
     }
 }

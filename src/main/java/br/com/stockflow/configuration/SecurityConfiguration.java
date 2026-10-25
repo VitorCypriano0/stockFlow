@@ -1,5 +1,7 @@
 package br.com.stockflow.configuration;
 
+import br.com.stockflow.entities.Almoxarife;
+import br.com.stockflow.repository.AlmoxarifeRepository;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.proc.SecurityContext;
 import java.nio.charset.StandardCharsets;
@@ -13,9 +15,15 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -44,9 +52,43 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(SecretKey chave) {
+    JwtDecoder jwtDecoder(SecretKey chave, AlmoxarifeRepository almoxarifeRepository) {
         // A chave e o algoritmo são iguais aos usados na assinatura do token de login.
-        return NimbusJwtDecoder.withSecretKey(chave).macAlgorithm(MacAlgorithm.HS256).build();
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(chave)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
+
+        OAuth2TokenValidator<Jwt> validarContaAtiva = jwt -> {
+            String subject = jwt.getSubject();
+            if (subject == null || subject.isBlank()) {
+                return tokenInvalido();
+            }
+
+            Long almoxarifeId;
+            try {
+                almoxarifeId = Long.valueOf(subject);
+            } catch (NumberFormatException erro) {
+                return tokenInvalido();
+            }
+
+            return almoxarifeRepository.findById(almoxarifeId)
+                    .filter(Almoxarife::isAtivo)
+                    .filter(almoxarife -> !almoxarife.isBloqueado())
+                    .map(almoxarife -> OAuth2TokenValidatorResult.success())
+                    .orElseGet(SecurityConfiguration::tokenInvalido);
+        };
+
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefault(),
+                validarContaAtiva
+        ));
+        return decoder;
+    }
+
+    private static OAuth2TokenValidatorResult tokenInvalido() {
+        return OAuth2TokenValidatorResult.failure(
+                new OAuth2Error("invalid_token", "A conta está inativa ou bloqueada.", null)
+        );
     }
 
     @Bean

@@ -6,6 +6,7 @@ public record AlmoxarifeResponse(
         String cpf,
         String email,
         String telefone,
-        boolean ativo
+        boolean ativo,
+        boolean bloqueado
 ) {
 }

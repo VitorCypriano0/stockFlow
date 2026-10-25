@@ -93,6 +93,17 @@ public class AlmoxarifeService {
         repository.save(almoxarife);
     }
 
+    @Transactional
+    public AlmoxarifeResponse atualizarBloqueio(Long id, boolean bloqueado) {
+        Almoxarife almoxarife = obter(id);
+        if (!almoxarife.isAtivo()) {
+            throw new RegraNegocioException("Não é possível alterar o acesso de um almoxarife inativo.");
+        }
+
+        almoxarife.setBloqueado(bloqueado);
+        return paraResposta(repository.save(almoxarife));
+    }
+
     private Almoxarife obter(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Almoxarife não encontrado."));
@@ -107,6 +118,7 @@ public class AlmoxarifeService {
 
     private AlmoxarifeResponse ativarRegistroAntigo(Almoxarife almoxarife, String cpf, String senha) {
         if (almoxarife.isAtivo()
+                && !almoxarife.isBloqueado()
                 && almoxarife.getSenhaHash() == null
                 && almoxarife.getCpf().equalsIgnoreCase(cpf)) {
             almoxarife.setSenhaHash(passwordEncoder.encode(senha));
@@ -134,7 +146,8 @@ public class AlmoxarifeService {
                 almoxarife.getCpf(),
                 almoxarife.getEmail(),
                 almoxarife.getTelefone(),
-                almoxarife.isAtivo()
+                almoxarife.isAtivo(),
+                almoxarife.isBloqueado()
         );
     }
 

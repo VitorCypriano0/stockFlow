@@ -45,11 +45,26 @@ export default function AlmoxarifesPage() {
     }
   }
 
+  async function alterarBloqueio(almoxarife: Almoxarife) {
+    const bloqueado = !almoxarife.bloqueado;
+    const acao = bloqueado ? "Bloquear" : "Desbloquear";
+    if (!window.confirm(acao + " o acesso de " + almoxarife.nome + "?")) {
+      return;
+    }
+
+    try {
+      await api.patch("/almoxarifes/" + almoxarife.id + "/bloqueio", { bloqueado });
+      await carregar();
+    } catch (error) {
+      setErro(mensagemDeErro(error, "Não foi possível atualizar o acesso do almoxarife."));
+    }
+  }
+
   return (
     <section>
       <PageHeader
         titulo="Almoxarifes"
-        descricao="Gerencie quem pode ser associado às movimentações do estoque."
+        descricao="Desativar inativa o cadastro; bloquear impede o acesso sem desativá-lo."
         acaoHref="/almoxarifes/novo"
         acaoTexto="Novo almoxarife"
       />
@@ -78,12 +93,22 @@ export default function AlmoxarifesPage() {
                   <td className="px-5 py-4">{almoxarife.cpf}</td>
                   <td className="px-5 py-4">{almoxarife.email}</td>
                   <td className="px-5 py-4">{almoxarife.telefone || "—"}</td>
-                  <td className="px-5 py-4"><StatusPill ativo={almoxarife.ativo} /></td>
+                  <td className="px-5 py-4">
+                    <StatusPill ativo={almoxarife.ativo} bloqueado={almoxarife.bloqueado} />
+                  </td>
                   <td className="px-5 py-4">
                     <div className="flex gap-3">
                       <Link className="font-semibold text-emerald-800 hover:underline" href={"/almoxarifes/" + almoxarife.id + "/editar"}>
                         Editar
                       </Link>
+                      {almoxarife.ativo ? (
+                        <button
+                          className="font-semibold text-amber-800 hover:underline"
+                          onClick={() => void alterarBloqueio(almoxarife)}
+                        >
+                          {almoxarife.bloqueado ? "Desbloquear" : "Bloquear"}
+                        </button>
+                      ) : null}
                       {almoxarife.ativo ? (
                         <button className="font-semibold text-red-700 hover:underline" onClick={() => void excluir(almoxarife)}>
                           Desativar

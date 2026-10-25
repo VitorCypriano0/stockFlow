@@ -5,6 +5,7 @@ export interface Almoxarife {
   email: string;
   telefone: string | null;
   ativo: boolean;
+  bloqueado: boolean;
 }
 
 export interface AlmoxarifeInput {
