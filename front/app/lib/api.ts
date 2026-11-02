@@ -11,13 +11,15 @@ export const api = axios.create({
 // O mesmo cliente Axios inclui o token do login em cada chamada ao backend.
 api.interceptors.request.use((config) => {
   const token = obterToken();
-  if (token) {
+  const rotaPublica = config.url?.endsWith("/auth/login")
+    || config.url?.endsWith("/auth/registrar");
+  if (token && !rotaPublica) {
     config.headers.Authorization = "Bearer " + token;
   }
   return config;
 });
 
-// Token expirado ou inválido encerra a sessão e retorna para a tela de login.
+// Token expirado, revogado ou inválido encerra a sessão e retorna para o login.
 api.interceptors.response.use(
   (resposta) => resposta,
   (erro: unknown) => {

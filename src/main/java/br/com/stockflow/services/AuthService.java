@@ -8,13 +8,14 @@ import br.com.stockflow.exceptions.CredenciaisInvalidasException;
 import br.com.stockflow.repository.AlmoxarifeRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.security.oauth2.jwt.JwsHeader;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -53,6 +54,7 @@ public class AuthService {
                 .issuer("stockflow")
                 .issuedAt(agora)
                 .expiresAt(expiraEm)
+                .id(UUID.randomUUID().toString())
                 .subject(almoxarife.getId().toString())
                 .claim("email", almoxarife.getEmail())
                 .claim("nome", almoxarife.getNome())

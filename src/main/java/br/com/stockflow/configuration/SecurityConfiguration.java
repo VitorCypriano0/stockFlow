@@ -2,6 +2,7 @@ package br.com.stockflow.configuration;
 
 import br.com.stockflow.entities.Almoxarife;
 import br.com.stockflow.repository.AlmoxarifeRepository;
+import br.com.stockflow.services.TokenRevogacaoService;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.proc.SecurityContext;
 import java.nio.charset.StandardCharsets;
@@ -10,6 +11,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -52,13 +54,22 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(SecretKey chave, AlmoxarifeRepository almoxarifeRepository) {
+    JwtDecoder jwtDecoder(
+            SecretKey chave,
+            AlmoxarifeRepository almoxarifeRepository,
+            TokenRevogacaoService tokenRevogacaoService
+    ) {
         // A chave e o algoritmo são iguais aos usados na assinatura do token de login.
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(chave)
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
 
-        OAuth2TokenValidator<Jwt> validarContaAtiva = jwt -> {
+        OAuth2TokenValidator<Jwt> validarSessaoEConta = jwt -> {
+            String tokenId = jwt.getId();
+            if (tokenId == null || tokenId.isBlank() || tokenRevogacaoService.estaRevogado(tokenId)) {
+                return tokenInvalido();
+            }
+
             String subject = jwt.getSubject();
             if (subject == null || subject.isBlank()) {
                 return tokenInvalido();
@@ -80,14 +91,14 @@ public class SecurityConfiguration {
 
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
                 JwtValidators.createDefault(),
-                validarContaAtiva
+                validarSessaoEConta
         ));
         return decoder;
     }
 
     private static OAuth2TokenValidatorResult tokenInvalido() {
         return OAuth2TokenValidatorResult.failure(
-                new OAuth2Error("invalid_token", "A conta está inativa ou bloqueada.", null)
+                new OAuth2Error("invalid_token", "A sessão é inválida ou a conta está inativa/bloqueada.", null)
         );
     }
 
@@ -99,8 +110,9 @@ public class SecurityConfiguration {
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/registrar").permitAll()
                         .requestMatchers(
-                                "/api/auth/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
