@@ -3,9 +3,8 @@ package br.com.stockflow.domain.repository;
 import br.com.stockflow.domain.entities.Item;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ItemRepository extends JpaRepository<Item, Long> {
+public interface ItemRepository {
 
     boolean existsByCodigoIgnoreCase(String codigo);
 
@@ -16,4 +15,8 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     Optional<Item> findByIdAndEmpresa_Id(Long id, Long empresaId);
 
     List<Item> findAllByEmpresaIsNull();
+
+    Item save(Item item);
+
+    List<Item> saveAll(List<Item> itens);
 }

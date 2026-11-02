@@ -4,7 +4,7 @@ Sistema acadêmico para controle de almoxarifado. A aplicação mantém almoxari
 
 ## Organização
 
-O backend usa Spring Boot com a separação controller, service, repository, entity e DTO. O frontend usa Next.js, TypeScript, Tailwind CSS e Axios. As páginas de listagem consultam a API e mostram dados reais nestas rotas:
+O backend usa Spring Boot com a separação controller, service, repository, entity e DTO. Os serviços dependem das interfaces de repositório do domínio; adaptadores JPA na infraestrutura implementam essas portas. O frontend usa Next.js, TypeScript, Tailwind CSS e Axios. As páginas de listagem consultam a API e mostram dados reais nestas rotas:
 
 - `/almoxarifes`: responsáveis pelas movimentações.
 - `/fornecedores`: empresas fornecedoras.

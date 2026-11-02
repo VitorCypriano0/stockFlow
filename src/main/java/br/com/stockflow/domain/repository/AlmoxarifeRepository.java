@@ -3,9 +3,10 @@ package br.com.stockflow.domain.repository;
 import br.com.stockflow.domain.entities.Almoxarife;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface AlmoxarifeRepository extends JpaRepository<Almoxarife, Long> {
+public interface AlmoxarifeRepository {
+
+    Optional<Almoxarife> findById(Long id);
 
     boolean existsByCpfIgnoreCase(String cpf);
 
@@ -26,4 +27,8 @@ public interface AlmoxarifeRepository extends JpaRepository<Almoxarife, Long> {
     Optional<Almoxarife> findByIdAndEmpresa_Id(Long id, Long empresaId);
 
     List<Almoxarife> findAllByEmpresaIsNull();
+
+    Almoxarife save(Almoxarife almoxarife);
+
+    List<Almoxarife> saveAll(List<Almoxarife> almoxarifes);
 }

@@ -2,9 +2,12 @@ package br.com.stockflow.domain.repository;
 
 import br.com.stockflow.domain.entities.TokenRevogado;
 import java.time.Instant;
-import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TokenRevogadoRepository extends JpaRepository<TokenRevogado, String> {
+public interface TokenRevogadoRepository {
 
     long deleteByExpiraEmLessThanEqual(Instant instante);
+
+    boolean existsById(String id);
+
+    TokenRevogado save(TokenRevogado tokenRevogado);
 }

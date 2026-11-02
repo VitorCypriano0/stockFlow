@@ -3,9 +3,8 @@ package br.com.stockflow.domain.repository;
 import br.com.stockflow.domain.entities.Fornecedor;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface FornecedorRepository extends JpaRepository<Fornecedor, Long> {
+public interface FornecedorRepository {
 
     boolean existsByCnpjIgnoreCase(String cnpj);
 
@@ -16,4 +15,8 @@ public interface FornecedorRepository extends JpaRepository<Fornecedor, Long> {
     Optional<Fornecedor> findByIdAndEmpresa_Id(Long id, Long empresaId);
 
     List<Fornecedor> findAllByEmpresaIsNull();
+
+    Fornecedor save(Fornecedor fornecedor);
+
+    List<Fornecedor> saveAll(List<Fornecedor> fornecedores);
 }
