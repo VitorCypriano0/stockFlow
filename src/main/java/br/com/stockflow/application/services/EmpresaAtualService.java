@@ -1,5 +1,6 @@
 package br.com.stockflow.application.services;
 
+import br.com.stockflow.application.dto.AlmoxarifeAutenticado;
 import br.com.stockflow.application.exceptions.CredenciaisInvalidasException;
 import br.com.stockflow.application.exceptions.RecursoNaoEncontradoException;
 import br.com.stockflow.application.exceptions.RegraNegocioException;
@@ -8,7 +9,6 @@ import br.com.stockflow.domain.entities.Empresa;
 import br.com.stockflow.domain.repository.AlmoxarifeRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,18 +24,11 @@ public class EmpresaAtualService {
     @Transactional(readOnly = true)
     public Empresa obterEmpresaAtual() {
         Authentication autenticacao = SecurityContextHolder.getContext().getAuthentication();
-        if (autenticacao == null || !(autenticacao.getPrincipal() instanceof Jwt jwt)) {
+        if (autenticacao == null
+                || !(autenticacao.getPrincipal() instanceof AlmoxarifeAutenticado almoxarifeAutenticado)) {
             throw new CredenciaisInvalidasException("Sessão autenticada não encontrada.");
         }
-
-        Long almoxarifeId;
-        try {
-            almoxarifeId = Long.valueOf(jwt.getSubject());
-        } catch (RuntimeException erro) {
-            throw new CredenciaisInvalidasException("Sessão autenticada inválida.");
-        }
-
-        Almoxarife almoxarife = almoxarifeRepository.findById(almoxarifeId)
+        Almoxarife almoxarife = almoxarifeRepository.findById(almoxarifeAutenticado.id())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Almoxarife autenticado não encontrado."));
         Empresa empresa = almoxarife.getEmpresa();
         if (empresa == null) {

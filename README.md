@@ -14,7 +14,7 @@ O backend usa Spring Boot com a separação controller, service, repository, ent
 
 ## Banco de dados e segredo do JWT
 
-O backend usa PostgreSQL e espera o banco `cafeteria` disponível em `localhost`. Não mantenha a senha do banco nem a chave de assinatura JWT no Git.
+O backend usa PostgreSQL e espera o banco `cafeteria` disponível em `localhost`. Não mantenha a senha do banco nem a chave de assinatura JWT no Git. A configuração carrega `JWT_SECRET` e `JWT_EXPIRATION_MINUTES` nas propriedades `spring.secretkey` e `spring.tempo_expiracao`, seguindo os nomes usados pelo projeto de referência.
 
 1. Copie `.env.example` para `.env` na raiz.
 2. Ajuste `DATABASE_URL`, `DATABASE_USERNAME` e `DATABASE_PASSWORD` para o PostgreSQL local.
@@ -33,7 +33,7 @@ Abra `/cadastro` no frontend para criar uma empresa e sua primeira conta adminis
 - `POST /api/bootstrap/admin`: cria a primeira empresa e o primeiro administrador usando a chave `APP_BOOTSTRAP_KEY`; só fica disponível enquanto não houver administrador no banco.
 - As rotas de negócio exigem `Authorization: Bearer <token>` e isolam os dados por empresa. O gerenciamento de almoxarifes é restrito a administradores.
 
-As senhas são gravadas como hash BCrypt. O token tem duração configurável em `JWT_EXPIRATION_MINUTES` (padrão: 60 minutos). A chave JWT deve ser a mesma enquanto houver tokens que precisem continuar válidos.
+As senhas são gravadas como hash BCrypt. O token tem duração configurável em `JWT_EXPIRATION_MINUTES` (padrão: 60 minutos). A chave JWT deve ser a mesma enquanto houver tokens que precisem continuar válidos. Cada token emitido é registrado no banco e validado contra esse registro; o logout remove a sessão correspondente.
 
 No frontend, o token e os dados do usuário ficam na store Redux em memória; atualizar ou fechar a página encerra a sessão local e exige novo login. O estado do painel também é gerenciado no Redux. O serviço Axios injeta o token nas chamadas protegidas e encerra a sessão ao receber HTTP 401.
 

@@ -1,5 +1,6 @@
 package br.com.stockflow.presentation;
 
+import br.com.stockflow.application.dto.AlmoxarifeAutenticado;
 import br.com.stockflow.application.dto.MovimentacaoRequest;
 import br.com.stockflow.application.dto.MovimentacaoResponse;
 import br.com.stockflow.application.exceptions.CredenciaisInvalidasException;
@@ -10,7 +11,6 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,42 +43,35 @@ public class MovimentacaoController {
 
     @PostMapping
     public ResponseEntity<MovimentacaoResponse> criar(
-            @AuthenticationPrincipal Jwt jwt,
+            @AuthenticationPrincipal AlmoxarifeAutenticado almoxarife,
             @Valid @RequestBody MovimentacaoRequest requisicao
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(service.criar(requisicao, idAlmoxarifeAutenticado(jwt)));
+                .body(service.criar(requisicao, idAlmoxarifeAutenticado(almoxarife)));
     }
 
     @PutMapping("/{id}")
     public MovimentacaoResponse atualizar(
             @PathVariable Long id,
-            @AuthenticationPrincipal Jwt jwt,
+            @AuthenticationPrincipal AlmoxarifeAutenticado almoxarife,
             @Valid @RequestBody MovimentacaoRequest requisicao
     ) {
-        return service.atualizar(id, requisicao, idAlmoxarifeAutenticado(jwt));
+        return service.atualizar(id, requisicao, idAlmoxarifeAutenticado(almoxarife));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> excluir(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        service.excluir(id, idAlmoxarifeAutenticado(jwt));
+    public ResponseEntity<Void> excluir(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AlmoxarifeAutenticado almoxarife
+    ) {
+        service.excluir(id, idAlmoxarifeAutenticado(almoxarife));
         return ResponseEntity.noContent().build();
     }
 
-    private Long idAlmoxarifeAutenticado(Jwt jwt) {
-        if (jwt == null) {
+    private Long idAlmoxarifeAutenticado(AlmoxarifeAutenticado almoxarife) {
+        if (almoxarife == null || almoxarife.id() == null) {
             throw new CredenciaisInvalidasException("Token de autenticação inválido.");
         }
-
-        String subject = jwt.getSubject();
-        if (subject == null || subject.isBlank()) {
-            throw new CredenciaisInvalidasException("Token de autenticação inválido.");
-        }
-
-        try {
-            return Long.valueOf(subject);
-        } catch (NumberFormatException erro) {
-            throw new CredenciaisInvalidasException("Token de autenticação inválido.");
-        }
+        return almoxarife.id();
     }
 }

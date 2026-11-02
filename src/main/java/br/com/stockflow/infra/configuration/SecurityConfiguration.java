@@ -1,15 +1,6 @@
 package br.com.stockflow.infra.configuration;
 
-import br.com.stockflow.domain.entities.Almoxarife;
-import br.com.stockflow.domain.repository.AlmoxarifeRepository;
-import br.com.stockflow.application.services.TokenRevogacaoService;
-import com.nimbusds.jose.jwk.source.ImmutableSecret;
-import com.nimbusds.jose.proc.SecurityContext;
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import org.springframework.beans.factory.annotation.Value;
+import br.com.stockflow.application.services.TokenService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,20 +9,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
-import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2Error;
-import org.springframework.security.oauth2.core.OAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtValidators;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 public class SecurityConfiguration {
@@ -43,83 +22,7 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    SecretKey jwtSecretKey(@Value("${app.jwt.secret}") String segredo) {
-        byte[] bytes = segredo.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length < 32) {
-            throw new IllegalStateException("JWT_SECRET deve ter pelo menos 32 bytes.");
-        }
-        return new SecretKeySpec(bytes, "HmacSHA256");
-    }
-
-    @Bean
-    JwtEncoder jwtEncoder(SecretKey chave) {
-        return new NimbusJwtEncoder(new ImmutableSecret<SecurityContext>(chave));
-    }
-
-    @Bean
-    JwtDecoder jwtDecoder(
-            SecretKey chave,
-            AlmoxarifeRepository almoxarifeRepository,
-            TokenRevogacaoService tokenRevogacaoService
-    ) {
-        // A chave e o algoritmo são iguais aos usados na assinatura do token de login.
-        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(chave)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-
-        OAuth2TokenValidator<Jwt> validarSessaoEConta = jwt -> {
-            String tokenId = jwt.getId();
-            if (tokenId == null || tokenId.isBlank() || tokenRevogacaoService.estaRevogado(tokenId)) {
-                return tokenInvalido();
-            }
-
-            String subject = jwt.getSubject();
-            if (subject == null || subject.isBlank()) {
-                return tokenInvalido();
-            }
-
-            Long almoxarifeId;
-            try {
-                almoxarifeId = Long.valueOf(subject);
-            } catch (NumberFormatException erro) {
-                return tokenInvalido();
-            }
-
-            String role = jwt.getClaimAsString("role");
-            return almoxarifeRepository.findById(almoxarifeId)
-                    .filter(Almoxarife::isAtivo)
-                    .filter(almoxarife -> !almoxarife.isBloqueado())
-                    .filter(almoxarife -> Objects.equals(almoxarife.getRole(), role))
-                    .map(almoxarife -> OAuth2TokenValidatorResult.success())
-                    .orElseGet(SecurityConfiguration::tokenInvalido);
-        };
-
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
-                JwtValidators.createDefault(),
-                validarSessaoEConta
-        ));
-        return decoder;
-    }
-
-    private static OAuth2TokenValidatorResult tokenInvalido() {
-        return OAuth2TokenValidatorResult.failure(
-                new OAuth2Error("invalid_token", "A sessão é inválida ou a conta está inativa/bloqueada.", null)
-        );
-    }
-
-    @Bean
-    JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        authoritiesConverter.setAuthoritiesClaimName("role");
-        authoritiesConverter.setAuthorityPrefix("");
-
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
-        return converter;
-    }
-
-    @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, TokenService tokenService) throws Exception {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
@@ -132,15 +35,15 @@ public class SecurityConfiguration {
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/webjars/**",
+                                "/swagger-resources/**"
                         ).permitAll()
                         .requestMatchers("/api/almoxarifes/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
-                .oauth2ResourceServer(resourceServer -> resourceServer.jwt(
-                        jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
-                ));
+                .addFilterBefore(new JwtFilter(tokenService), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

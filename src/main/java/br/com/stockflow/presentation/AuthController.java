@@ -1,18 +1,18 @@
 package br.com.stockflow.presentation;
 
+import br.com.stockflow.application.dto.AlmoxarifeAutenticado;
 import br.com.stockflow.application.dto.AlmoxarifeRequest;
 import br.com.stockflow.application.dto.AlmoxarifeResponse;
 import br.com.stockflow.application.dto.AuthResponse;
 import br.com.stockflow.application.dto.LoginRequest;
 import br.com.stockflow.application.services.AlmoxarifeService;
 import br.com.stockflow.application.services.AuthService;
-import br.com.stockflow.application.services.TokenRevogacaoService;
+import br.com.stockflow.application.services.TokenService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,16 +24,16 @@ public class AuthController {
 
     private final AuthService authService;
     private final AlmoxarifeService almoxarifeService;
-    private final TokenRevogacaoService tokenRevogacaoService;
+    private final TokenService tokenService;
 
     public AuthController(
             AuthService authService,
             AlmoxarifeService almoxarifeService,
-            TokenRevogacaoService tokenRevogacaoService
+            TokenService tokenService
     ) {
         this.authService = authService;
         this.almoxarifeService = almoxarifeService;
-        this.tokenRevogacaoService = tokenRevogacaoService;
+        this.tokenService = tokenService;
     }
 
     /** Endpoint público do login; retorna o token JWT quando e-mail e senha são válidos. */
@@ -50,8 +50,8 @@ public class AuthController {
 
     @PostMapping("/logout")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<Void> sair(@AuthenticationPrincipal Jwt jwt) {
-        tokenRevogacaoService.revogar(jwt.getId(), jwt.getExpiresAt());
+    public ResponseEntity<Void> sair(@AuthenticationPrincipal AlmoxarifeAutenticado almoxarife) {
+        tokenService.revogar(almoxarife.tokenId());
         return ResponseEntity.noContent().build();
     }
 }

@@ -3,42 +3,41 @@ package br.com.stockflow.application.services;
 import br.com.stockflow.application.dto.AlmoxarifeResponse;
 import br.com.stockflow.application.dto.AuthResponse;
 import br.com.stockflow.application.dto.LoginRequest;
-import br.com.stockflow.domain.entities.Almoxarife;
 import br.com.stockflow.application.exceptions.CredenciaisInvalidasException;
+import br.com.stockflow.domain.entities.Almoxarife;
 import br.com.stockflow.domain.repository.AlmoxarifeRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.JwsHeader;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
 
     private final AlmoxarifeRepository repository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtEncoder jwtEncoder;
+    private final TokenService tokenService;
     private final long validadeEmMinutos;
 
     public AuthService(
             AlmoxarifeRepository repository,
             PasswordEncoder passwordEncoder,
-            JwtEncoder jwtEncoder,
-            @Value("${app.jwt.expiration-minutes}") long validadeEmMinutos
+            TokenService tokenService,
+            @Value("${spring.tempo_expiracao}") long validadeEmMinutos
     ) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
-        this.jwtEncoder = jwtEncoder;
+        this.tokenService = tokenService;
+        if (validadeEmMinutos <= 0) {
+            throw new IllegalArgumentException("spring.tempo_expiracao deve ser maior que zero.");
+        }
         this.validadeEmMinutos = validadeEmMinutos;
     }
 
     /** Valida as credenciais e devolve um JWT assinado para as próximas chamadas da API. */
+    @Transactional
     public AuthResponse entrar(LoginRequest requisicao) {
         String email = requisicao.email().trim().toLowerCase();
         Almoxarife almoxarife = repository.findByEmailIgnoreCase(email)
@@ -50,20 +49,7 @@ public class AuthService {
 
         Instant agora = Instant.now();
         Instant expiraEm = agora.plus(validadeEmMinutos, ChronoUnit.MINUTES);
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("stockflow")
-                .issuedAt(agora)
-                .expiresAt(expiraEm)
-                .id(UUID.randomUUID().toString())
-                .subject(almoxarife.getId().toString())
-                .claim("email", almoxarife.getEmail())
-                .claim("nome", almoxarife.getNome())
-                .claim("role", almoxarife.getRole())
-                .build();
-
-        String token = jwtEncoder.encode(JwtEncoderParameters.from(
-                JwsHeader.with(MacAlgorithm.HS256).build(), claims
-        )).getTokenValue();
+        String token = tokenService.gerarToken(almoxarife, agora, expiraEm);
 
         return new AuthResponse(token, "Bearer", expiraEm, paraResposta(almoxarife));
     }
