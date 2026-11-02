@@ -1,6 +1,10 @@
 package br.com.stockflow.presentation.exceptions;
 
 import br.com.stockflow.application.dto.ApiError;
+import br.com.stockflow.application.exceptions.ConflitoException;
+import br.com.stockflow.application.exceptions.CredenciaisInvalidasException;
+import br.com.stockflow.application.exceptions.RegraNegocioException;
+import br.com.stockflow.application.exceptions.RecursoNaoEncontradoException;
 import java.time.LocalDateTime;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;

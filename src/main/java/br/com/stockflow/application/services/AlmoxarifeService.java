@@ -2,6 +2,8 @@ package br.com.stockflow.application.services;
 
 import br.com.stockflow.application.dto.AlmoxarifeRequest;
 import br.com.stockflow.application.dto.AlmoxarifeResponse;
+import br.com.stockflow.application.dto.BootstrapRequest;
+import br.com.stockflow.application.dto.BootstrapResponse;
 import br.com.stockflow.domain.entities.Almoxarife;
 import br.com.stockflow.domain.entities.Empresa;
 import br.com.stockflow.application.exceptions.ConflitoException;
@@ -17,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AlmoxarifeService {
+
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
+    private static final String ROLE_USER = "ROLE_USER";
 
     private final AlmoxarifeRepository repository;
     private final EmpresaRepository empresaRepository;
@@ -50,10 +55,10 @@ public class AlmoxarifeService {
 
     @Transactional
     public AlmoxarifeResponse criar(AlmoxarifeRequest requisicao) {
-        return criar(requisicao, empresaAtualService.obterEmpresaAtual());
+        return criar(requisicao, empresaAtualService.obterEmpresaAtual(), ROLE_USER);
     }
 
-    private AlmoxarifeResponse criar(AlmoxarifeRequest requisicao, Empresa empresa) {
+    private AlmoxarifeResponse criar(AlmoxarifeRequest requisicao, Empresa empresa, String role) {
         validarSenha(requisicao.senha(), true);
         String cpf = validarCpf(requisicao.cpf());
         String email = limpar(requisicao.email()).toLowerCase();
@@ -68,6 +73,7 @@ public class AlmoxarifeService {
         copiarDados(almoxarife, requisicao, cpf, email);
         almoxarife.setEmpresa(empresa);
         almoxarife.setSenhaHash(passwordEncoder.encode(requisicao.senha()));
+        almoxarife.setRole(role);
         return paraResposta(repository.save(almoxarife));
     }
 
@@ -88,7 +94,30 @@ public class AlmoxarifeService {
             throw new RegraNegocioException("Informe o nome da empresa para criar uma nova conta.");
         }
         Empresa empresa = empresaRepository.save(new Empresa(empresaNome));
-        return criar(requisicao, empresa);
+        return criar(requisicao, empresa, ROLE_ADMIN);
+    }
+
+    @Transactional
+    public BootstrapResponse criarAdministradorInicial(BootstrapRequest requisicao) {
+        if (repository.existsByRole(ROLE_ADMIN)) {
+            throw new ConflitoException("O administrador inicial já foi criado.");
+        }
+
+        AlmoxarifeRequest dadosAdministrador = new AlmoxarifeRequest(
+                requisicao.nome(), requisicao.cpf(), requisicao.email(),
+                requisicao.telefone(), requisicao.senha(), requisicao.empresaNome()
+        );
+        String empresaNome = limpar(requisicao.empresaNome());
+        if (empresaNome == null || empresaNome.isBlank()) {
+            throw new RegraNegocioException("Informe o nome da empresa.");
+        }
+
+        Empresa empresa = empresaRepository.save(new Empresa(empresaNome));
+        AlmoxarifeResponse administrador = criar(dadosAdministrador, empresa, ROLE_ADMIN);
+        return new BootstrapResponse(
+                empresa.getId(), empresa.getNome(), administrador.id(),
+                administrador.nome(), administrador.email()
+        );
     }
 
     @Transactional
@@ -149,6 +178,10 @@ public class AlmoxarifeService {
                 && almoxarife.getSenhaHash() == null
                 && almoxarife.getCpf().equalsIgnoreCase(cpf)) {
             almoxarife.setSenhaHash(passwordEncoder.encode(senha));
+            if (almoxarife.getEmpresa() != null
+                    && !repository.existsByRoleAndEmpresa_Id(ROLE_ADMIN, almoxarife.getEmpresa().getId())) {
+                almoxarife.setRole(ROLE_ADMIN);
+            }
             return paraResposta(repository.save(almoxarife));
         }
         throw new ConflitoException("Este e-mail já possui uma conta. Confira os dados ou faça login.");
@@ -174,7 +207,8 @@ public class AlmoxarifeService {
                 almoxarife.getEmail(),
                 almoxarife.getTelefone(),
                 almoxarife.isAtivo(),
-                almoxarife.isBloqueado()
+                almoxarife.isBloqueado(),
+                almoxarife.getRole()
         );
     }
 

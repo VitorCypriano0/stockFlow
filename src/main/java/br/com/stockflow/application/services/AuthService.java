@@ -58,6 +58,7 @@ public class AuthService {
                 .subject(almoxarife.getId().toString())
                 .claim("email", almoxarife.getEmail())
                 .claim("nome", almoxarife.getNome())
+                .claim("role", almoxarife.getRole())
                 .build();
 
         String token = jwtEncoder.encode(JwtEncoderParameters.from(
@@ -75,7 +76,8 @@ public class AuthService {
                 almoxarife.getEmail(),
                 almoxarife.getTelefone(),
                 almoxarife.isAtivo(),
-                almoxarife.isBloqueado()
+                almoxarife.isBloqueado(),
+                almoxarife.getRole()
         );
     }
 }

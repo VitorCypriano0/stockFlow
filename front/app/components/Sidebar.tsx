@@ -1,8 +1,12 @@
-import Link from "next/link";
+"use client";
 
-const links = [
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { obterPapel } from "@/app/lib/session";
+
+const links: { href: string; texto: string; admin?: boolean }[] = [
   { href: "/home", texto: "Visão geral" },
-  { href: "/almoxarifes", texto: "Almoxarifes" },
+  { href: "/almoxarifes", texto: "Almoxarifes", admin: true },
   { href: "/fornecedores", texto: "Fornecedores" },
   { href: "/itens", texto: "Itens" },
   { href: "/movimentacoes", texto: "Movimentações" },
@@ -10,6 +14,14 @@ const links = [
 ];
 
 export default function Sidebar() {
+  const [administrador, setAdministrador] = useState(false);
+
+  useEffect(() => {
+    setAdministrador(obterPapel() === "ROLE_ADMIN");
+  }, []);
+
+  const linksVisiveis = links.filter((link) => !link.admin || administrador);
+
   return (
     <aside className="w-full shrink-0 border-b border-emerald-950/10 bg-emerald-950 px-4 py-5 text-white md:min-h-screen md:w-64 md:border-b-0 md:border-r md:px-5">
       <Link href="/home" className="mb-5 flex items-center gap-3 md:mb-10">
@@ -25,7 +37,7 @@ export default function Sidebar() {
         Gestão
       </p>
       <nav className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:flex md:flex-col">
-        {links.map((link) => (
+        {linksVisiveis.map((link) => (
           <Link
             key={link.href}
             href={link.href}

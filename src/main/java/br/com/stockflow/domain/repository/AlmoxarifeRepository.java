@@ -15,6 +15,10 @@ public interface AlmoxarifeRepository extends JpaRepository<Almoxarife, Long> {
 
     boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
 
+    boolean existsByRole(String role);
+
+    boolean existsByRoleAndEmpresa_Id(String role, Long empresaId);
+
     Optional<Almoxarife> findByEmailIgnoreCase(String email);
 
     List<Almoxarife> findAllByEmpresa_IdOrderByNomeAsc(Long empresaId);

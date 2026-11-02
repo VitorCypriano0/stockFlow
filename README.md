@@ -17,7 +17,7 @@ O backend usa Spring Boot com a separação controller, service, repository, ent
 O backend usa PostgreSQL e espera o banco `cafeteria` disponível em `localhost`. Não mantenha a senha do banco nem a chave de assinatura JWT no Git.
 
 1. Copie `.env.example` para `.env` na raiz.
-2. Preencha `DATABASE_PASSWORD` com a senha configurada no seu PostgreSQL local.
+2. Ajuste `DATABASE_URL`, `DATABASE_USERNAME` e `DATABASE_PASSWORD` para o PostgreSQL local.
 3. Gere uma chave aleatória com pelo menos 32 bytes e coloque o resultado em `JWT_SECRET`. No PowerShell, gere uma chave com:
 
        [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
@@ -26,13 +26,18 @@ O Spring Boot carrega esse `.env` local. O Hibernate atualiza o esquema com `ddl
 
 ## Login e autenticação
 
-Abra `/cadastro` no frontend para criar o primeiro almoxarife. Um registro antigo ainda sem senha pode definir uma pela primeira vez informando o mesmo e-mail e CPF. Depois, acesse `/login`.
+Abra `/cadastro` no frontend para criar uma empresa e sua primeira conta administradora. Um registro antigo ainda sem senha pode definir uma pela primeira vez informando o mesmo e-mail e CPF. Depois, acesse `/login`.
 
-- `POST /api/auth/registrar`: cria uma conta ou ativa um registro antigo sem senha.
+- `POST /api/auth/registrar`: cria uma empresa com sua primeira conta administradora ou ativa um registro antigo sem senha.
 - `POST /api/auth/login`: valida e-mail e senha e devolve um token JWT do tipo Bearer.
-- As demais rotas `/api/**` exigem `Authorization: Bearer <token>`.
+- `POST /api/bootstrap/admin`: cria a primeira empresa e o primeiro administrador usando a chave `APP_BOOTSTRAP_KEY`; só fica disponível enquanto não houver administrador no banco.
+- As rotas de negócio exigem `Authorization: Bearer <token>` e isolam os dados por empresa. O gerenciamento de almoxarifes é restrito a administradores.
 
 As senhas são gravadas como hash BCrypt. O token tem duração configurável em `JWT_EXPIRATION_MINUTES` (padrão: 60 minutos). A chave JWT deve ser a mesma enquanto houver tokens que precisem continuar válidos.
+
+### Configuração inicial pela aplicação JavaFX
+
+Com a API em execução, configure `APP_BOOTSTRAP_KEY` no `.env` com pelo menos 32 caracteres e reinicie o backend. Na pasta `desktop`, rode `mvn javafx:run` e informe a mesma chave e os dados da empresa e do administrador. Após a criação, remova a chave do ambiente e reinicie a API. Veja [desktop/README.md](desktop/README.md) para detalhes.
 
 ## Documentação da API
 

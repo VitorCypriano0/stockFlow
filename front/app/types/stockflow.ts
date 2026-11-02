@@ -6,6 +6,7 @@ export interface Almoxarife {
   telefone: string | null;
   ativo: boolean;
   bloqueado: boolean;
+  role: "ROLE_ADMIN" | "ROLE_USER";
 }
 
 export interface AlmoxarifeInput {

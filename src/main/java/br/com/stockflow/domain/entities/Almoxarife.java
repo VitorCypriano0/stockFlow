@@ -46,6 +46,9 @@ public class Almoxarife {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean bloqueado;
 
+    @Column(nullable = false, length = 32, columnDefinition = "varchar(32) default 'ROLE_USER'")
+    private String role = "ROLE_USER";
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id")
     private Empresa empresa;
