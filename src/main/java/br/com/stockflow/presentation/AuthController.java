@@ -42,7 +42,7 @@ public class AuthController {
         return authService.entrar(requisicao);
     }
 
-    /** Primeiro cadastro cria a conta; um almoxarife antigo pode definir a senha com CPF e e-mail. */
+    /** Primeiro cadastro cria a empresa e seu almoxarife; registros antigos podem definir a senha. */
     @PostMapping("/registrar")
     public ResponseEntity<AlmoxarifeResponse> registrar(@Valid @RequestBody AlmoxarifeRequest requisicao) {
         return ResponseEntity.status(HttpStatus.CREATED).body(almoxarifeService.registrar(requisicao));

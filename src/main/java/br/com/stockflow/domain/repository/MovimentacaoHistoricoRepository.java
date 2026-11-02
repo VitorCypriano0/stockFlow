@@ -6,5 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MovimentacaoHistoricoRepository extends JpaRepository<MovimentacaoHistorico, Long> {
 
-    List<MovimentacaoHistorico> findAllByOrderByDataHoraDesc();
+    List<MovimentacaoHistorico> findAllByEmpresa_IdOrderByDataHoraDesc(Long empresaId);
+
+    List<MovimentacaoHistorico> findAllByEmpresaIsNull();
 }

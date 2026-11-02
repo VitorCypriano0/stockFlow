@@ -8,6 +8,7 @@ public record AlmoxarifeRequest(
         @NotBlank String cpf,
         @Email @NotBlank String email,
         String telefone,
-        String senha
+        String senha,
+        String empresaNome
 ) {
 }

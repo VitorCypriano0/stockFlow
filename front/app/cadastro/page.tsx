@@ -10,9 +10,11 @@ import type { AlmoxarifeInput } from "@/app/types/stockflow";
 
 interface CadastroInput extends Omit<AlmoxarifeInput, "senha"> {
   senha: string;
+  empresaNome: string;
 }
 
 const cadastroVazio: CadastroInput = {
+  empresaNome: "",
   nome: "",
   cpf: "",
   email: "",
@@ -41,6 +43,7 @@ export default function CadastroPage() {
     try {
       await api.post("/auth/registrar", {
         ...formulario,
+        empresaNome: formulario.empresaNome.trim(),
         nome: formulario.nome.trim(),
         cpf,
         email: formulario.email.trim(),
@@ -60,7 +63,7 @@ export default function CadastroPage() {
         <Link href="/login" className="text-sm font-semibold text-emerald-800 hover:underline">← Voltar ao login</Link>
         <p className="mt-8 text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Novo acesso</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Criar conta</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-600">O cadastro também permite ativar um almoxarife já existente usando o mesmo e-mail e CPF.</p>
+        <p className="mt-2 text-sm leading-6 text-slate-600">Informe sua empresa. O cadastro também permite ativar um almoxarife já existente usando o mesmo e-mail e CPF.</p>
 
         {concluido ? (
           <div className="mt-7 rounded-2xl bg-emerald-50 p-5 text-sm text-emerald-900" role="status">
@@ -71,6 +74,11 @@ export default function CadastroPage() {
         ) : (
           <form onSubmit={cadastrar} className="mt-7">
             <div className="grid gap-5 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Field label="Nome da empresa">
+                  <input className={fieldClasses} autoComplete="organization" value={formulario.empresaNome} onChange={(event) => setFormulario({ ...formulario, empresaNome: event.target.value })} required />
+                </Field>
+              </div>
               <Field label="Nome completo">
                 <input className={fieldClasses} autoComplete="name" value={formulario.nome} onChange={(event) => setFormulario({ ...formulario, nome: event.target.value })} required />
               </Field>

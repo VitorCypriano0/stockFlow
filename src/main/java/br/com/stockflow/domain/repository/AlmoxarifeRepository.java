@@ -17,5 +17,9 @@ public interface AlmoxarifeRepository extends JpaRepository<Almoxarife, Long> {
 
     Optional<Almoxarife> findByEmailIgnoreCase(String email);
 
-    List<Almoxarife> findAllByOrderByNomeAsc();
+    List<Almoxarife> findAllByEmpresa_IdOrderByNomeAsc(Long empresaId);
+
+    Optional<Almoxarife> findByIdAndEmpresa_Id(Long id, Long empresaId);
+
+    List<Almoxarife> findAllByEmpresaIsNull();
 }

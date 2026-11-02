@@ -4,6 +4,7 @@ import br.com.stockflow.application.dto.HistoricoResponse;
 import br.com.stockflow.application.dto.MovimentacaoRequest;
 import br.com.stockflow.application.dto.MovimentacaoResponse;
 import br.com.stockflow.domain.entities.Almoxarife;
+import br.com.stockflow.domain.entities.Empresa;
 import br.com.stockflow.domain.entities.Item;
 import br.com.stockflow.domain.entities.Movimentacao;
 import br.com.stockflow.domain.entities.MovimentacaoHistorico;
@@ -26,40 +27,47 @@ public class MovimentacaoService {
     private final MovimentacaoHistoricoRepository historicoRepository;
     private final ItemRepository itemRepository;
     private final AlmoxarifeRepository almoxarifeRepository;
+    private final EmpresaAtualService empresaAtualService;
 
     public MovimentacaoService(
             MovimentacaoRepository movimentacaoRepository,
             MovimentacaoHistoricoRepository historicoRepository,
             ItemRepository itemRepository,
-            AlmoxarifeRepository almoxarifeRepository
+            AlmoxarifeRepository almoxarifeRepository,
+            EmpresaAtualService empresaAtualService
     ) {
         this.movimentacaoRepository = movimentacaoRepository;
         this.historicoRepository = historicoRepository;
         this.itemRepository = itemRepository;
         this.almoxarifeRepository = almoxarifeRepository;
+        this.empresaAtualService = empresaAtualService;
     }
 
     @Transactional(readOnly = true)
     public List<MovimentacaoResponse> listar() {
-        return movimentacaoRepository.findAllByOrderByDataHoraDesc().stream()
+        Long empresaId = empresaAtualService.obterEmpresaAtual().getId();
+        return movimentacaoRepository.findAllByEmpresa_IdOrderByDataHoraDesc(empresaId).stream()
                 .map(this::paraResposta)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public MovimentacaoResponse buscar(Long id) {
-        return paraResposta(obter(id));
+        Long empresaId = empresaAtualService.obterEmpresaAtual().getId();
+        return paraResposta(obter(id, empresaId));
     }
 
     @Transactional
     public MovimentacaoResponse criar(MovimentacaoRequest requisicao, Long almoxarifeAutenticadoId) {
-        Item item = obterItemAtivo(requisicao.itemId());
-        Almoxarife almoxarife = obterAlmoxarifeAtivo(almoxarifeAutenticadoId);
+        Empresa empresa = empresaAtualService.obterEmpresaAtual();
+        Long empresaId = empresa.getId();
+        Item item = obterItemAtivo(requisicao.itemId(), empresaId);
+        Almoxarife almoxarife = obterAlmoxarifeAtivo(almoxarifeAutenticadoId, empresaId);
         aplicar(item, requisicao.tipo(), requisicao.quantidade());
         itemRepository.save(item);
 
         Movimentacao movimentacao = new Movimentacao();
-        preencher(movimentacao, item, almoxarife, requisicao);
+        preencher(movimentacao, item, almoxarife, empresa, requisicao);
         movimentacao.setDataHora(LocalDateTime.now());
         movimentacao.setAtiva(true);
         movimentacao = movimentacaoRepository.save(movimentacao);
@@ -73,18 +81,20 @@ public class MovimentacaoService {
             MovimentacaoRequest requisicao,
             Long almoxarifeAutenticadoId
     ) {
-        Movimentacao movimentacao = obter(id);
+        Empresa empresa = empresaAtualService.obterEmpresaAtual();
+        Long empresaId = empresa.getId();
+        Movimentacao movimentacao = obter(id, empresaId);
         if (!movimentacao.isAtiva()) {
             throw new RegraNegocioException("Uma movimentação cancelada não pode ser alterada.");
         }
 
         reverter(movimentacao);
-        Item item = obterItemAtivo(requisicao.itemId());
-        Almoxarife almoxarife = obterAlmoxarifeAtivo(almoxarifeAutenticadoId);
+        Item item = obterItemAtivo(requisicao.itemId(), empresaId);
+        Almoxarife almoxarife = obterAlmoxarifeAtivo(almoxarifeAutenticadoId, empresaId);
         aplicar(item, requisicao.tipo(), requisicao.quantidade());
         itemRepository.save(item);
 
-        preencher(movimentacao, item, almoxarife, requisicao);
+        preencher(movimentacao, item, almoxarife, empresa, requisicao);
         movimentacao = movimentacaoRepository.save(movimentacao);
         registrarHistorico(movimentacao, "ATUALIZADA", almoxarife);
         return paraResposta(movimentacao);
@@ -92,12 +102,14 @@ public class MovimentacaoService {
 
     @Transactional
     public void excluir(Long id, Long almoxarifeAutenticadoId) {
-        Movimentacao movimentacao = obter(id);
+        Empresa empresa = empresaAtualService.obterEmpresaAtual();
+        Long empresaId = empresa.getId();
+        Movimentacao movimentacao = obter(id, empresaId);
         if (!movimentacao.isAtiva()) {
             throw new RegraNegocioException("Esta movimentação já foi cancelada.");
         }
 
-        Almoxarife almoxarife = obterAlmoxarifeAtivo(almoxarifeAutenticadoId);
+        Almoxarife almoxarife = obterAlmoxarifeAtivo(almoxarifeAutenticadoId, empresaId);
         reverter(movimentacao);
         movimentacao.setAtiva(false);
         movimentacaoRepository.save(movimentacao);
@@ -106,7 +118,8 @@ public class MovimentacaoService {
 
     @Transactional(readOnly = true)
     public List<HistoricoResponse> listarHistorico() {
-        return historicoRepository.findAllByOrderByDataHoraDesc().stream()
+        Long empresaId = empresaAtualService.obterEmpresaAtual().getId();
+        return historicoRepository.findAllByEmpresa_IdOrderByDataHoraDesc(empresaId).stream()
                 .map(this::paraResposta)
                 .toList();
     }
@@ -141,10 +154,12 @@ public class MovimentacaoService {
             Movimentacao destino,
             Item item,
             Almoxarife almoxarife,
+            Empresa empresa,
             MovimentacaoRequest requisicao
     ) {
         destino.setItem(item);
         destino.setAlmoxarife(almoxarife);
+        destino.setEmpresa(empresa);
         destino.setTipo(requisicao.tipo());
         destino.setQuantidade(requisicao.quantidade());
         destino.setObservacao(limpar(requisicao.observacao()));
@@ -159,18 +174,19 @@ public class MovimentacaoService {
         registro.setQuantidade(movimentacao.getQuantidade());
         registro.setAlmoxarifeId(almoxarife.getId());
         registro.setAlmoxarifeNome(almoxarife.getNome());
+        registro.setEmpresa(movimentacao.getEmpresa());
         registro.setDataHora(LocalDateTime.now());
         registro.setObservacao(movimentacao.getObservacao());
         historicoRepository.save(registro);
     }
 
-    private Movimentacao obter(Long id) {
-        return movimentacaoRepository.findById(id)
+    private Movimentacao obter(Long id, Long empresaId) {
+        return movimentacaoRepository.findByIdAndEmpresa_Id(id, empresaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Movimentação não encontrada."));
     }
 
-    private Item obterItemAtivo(Long id) {
-        Item item = itemRepository.findById(id)
+    private Item obterItemAtivo(Long id, Long empresaId) {
+        Item item = itemRepository.findByIdAndEmpresa_Id(id, empresaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Item não encontrado."));
         if (!item.isAtivo()) {
             throw new RegraNegocioException("Selecione um item ativo.");
@@ -178,8 +194,8 @@ public class MovimentacaoService {
         return item;
     }
 
-    private Almoxarife obterAlmoxarifeAtivo(Long id) {
-        Almoxarife almoxarife = almoxarifeRepository.findById(id)
+    private Almoxarife obterAlmoxarifeAtivo(Long id, Long empresaId) {
+        Almoxarife almoxarife = almoxarifeRepository.findByIdAndEmpresa_Id(id, empresaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Almoxarife não encontrado."));
         if (!almoxarife.isAtivo()) {
             throw new RegraNegocioException("Selecione um almoxarife ativo.");

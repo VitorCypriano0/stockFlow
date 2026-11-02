@@ -49,6 +49,10 @@ public class Item {
     @JoinColumn(name = "fornecedor_id", nullable = false)
     private Fornecedor fornecedor;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id")
+    private Empresa empresa;
+
     @Column(nullable = false)
     private boolean ativo = true;
 }

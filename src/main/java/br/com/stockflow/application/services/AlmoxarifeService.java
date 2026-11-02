@@ -3,10 +3,12 @@ package br.com.stockflow.application.services;
 import br.com.stockflow.application.dto.AlmoxarifeRequest;
 import br.com.stockflow.application.dto.AlmoxarifeResponse;
 import br.com.stockflow.domain.entities.Almoxarife;
+import br.com.stockflow.domain.entities.Empresa;
 import br.com.stockflow.application.exceptions.ConflitoException;
 import br.com.stockflow.application.exceptions.RegraNegocioException;
 import br.com.stockflow.application.exceptions.RecursoNaoEncontradoException;
 import br.com.stockflow.domain.repository.AlmoxarifeRepository;
+import br.com.stockflow.domain.repository.EmpresaRepository;
 import br.com.stockflow.domain.validation.CpfValidador;
 import java.util.List;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,16 +19,26 @@ import org.springframework.transaction.annotation.Transactional;
 public class AlmoxarifeService {
 
     private final AlmoxarifeRepository repository;
+    private final EmpresaRepository empresaRepository;
+    private final EmpresaAtualService empresaAtualService;
     private final PasswordEncoder passwordEncoder;
 
-    public AlmoxarifeService(AlmoxarifeRepository repository, PasswordEncoder passwordEncoder) {
+    public AlmoxarifeService(
+            AlmoxarifeRepository repository,
+            EmpresaRepository empresaRepository,
+            EmpresaAtualService empresaAtualService,
+            PasswordEncoder passwordEncoder
+    ) {
         this.repository = repository;
+        this.empresaRepository = empresaRepository;
+        this.empresaAtualService = empresaAtualService;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
     public List<AlmoxarifeResponse> listar() {
-        return repository.findAllByOrderByNomeAsc().stream()
+        Long empresaId = empresaAtualService.obterEmpresaAtual().getId();
+        return repository.findAllByEmpresa_IdOrderByNomeAsc(empresaId).stream()
                 .map(this::paraResposta)
                 .toList();
     }
@@ -38,6 +50,10 @@ public class AlmoxarifeService {
 
     @Transactional
     public AlmoxarifeResponse criar(AlmoxarifeRequest requisicao) {
+        return criar(requisicao, empresaAtualService.obterEmpresaAtual());
+    }
+
+    private AlmoxarifeResponse criar(AlmoxarifeRequest requisicao, Empresa empresa) {
         validarSenha(requisicao.senha(), true);
         String cpf = validarCpf(requisicao.cpf());
         String email = limpar(requisicao.email()).toLowerCase();
@@ -50,6 +66,7 @@ public class AlmoxarifeService {
 
         Almoxarife almoxarife = new Almoxarife();
         copiarDados(almoxarife, requisicao, cpf, email);
+        almoxarife.setEmpresa(empresa);
         almoxarife.setSenhaHash(passwordEncoder.encode(requisicao.senha()));
         return paraResposta(repository.save(almoxarife));
     }
@@ -61,9 +78,17 @@ public class AlmoxarifeService {
         String cpf = validarCpf(requisicao.cpf());
         String email = limpar(requisicao.email()).toLowerCase();
 
-        return repository.findByEmailIgnoreCase(email)
-                .map(existente -> ativarRegistroAntigo(existente, cpf, requisicao.senha()))
-                .orElseGet(() -> criar(requisicao));
+        Almoxarife existente = repository.findByEmailIgnoreCase(email).orElse(null);
+        if (existente != null) {
+            return ativarRegistroAntigo(existente, cpf, requisicao.senha());
+        }
+
+        String empresaNome = limpar(requisicao.empresaNome());
+        if (empresaNome == null || empresaNome.isBlank()) {
+            throw new RegraNegocioException("Informe o nome da empresa para criar uma nova conta.");
+        }
+        Empresa empresa = empresaRepository.save(new Empresa(empresaNome));
+        return criar(requisicao, empresa);
     }
 
     @Transactional
@@ -106,7 +131,8 @@ public class AlmoxarifeService {
     }
 
     private Almoxarife obter(Long id) {
-        return repository.findById(id)
+        Long empresaId = empresaAtualService.obterEmpresaAtual().getId();
+        return repository.findByIdAndEmpresa_Id(id, empresaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Almoxarife não encontrado."));
     }
 

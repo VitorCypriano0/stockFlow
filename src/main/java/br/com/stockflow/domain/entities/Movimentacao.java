@@ -35,6 +35,10 @@ public class Movimentacao {
     @JoinColumn(name = "almoxarife_id", nullable = false)
     private Almoxarife almoxarife;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "empresa_id")
+    private Empresa empresa;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TipoMovimentacao tipo;

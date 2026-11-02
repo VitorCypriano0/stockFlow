@@ -2,6 +2,7 @@ package br.com.stockflow.application.services;
 
 import br.com.stockflow.application.dto.FornecedorRequest;
 import br.com.stockflow.application.dto.FornecedorResponse;
+import br.com.stockflow.domain.entities.Empresa;
 import br.com.stockflow.domain.entities.Fornecedor;
 import br.com.stockflow.application.exceptions.ConflitoException;
 import br.com.stockflow.application.exceptions.RecursoNaoEncontradoException;
@@ -14,14 +15,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class FornecedorService {
 
     private final FornecedorRepository repository;
+    private final EmpresaAtualService empresaAtualService;
 
-    public FornecedorService(FornecedorRepository repository) {
+    public FornecedorService(FornecedorRepository repository, EmpresaAtualService empresaAtualService) {
         this.repository = repository;
+        this.empresaAtualService = empresaAtualService;
     }
 
     @Transactional(readOnly = true)
     public List<FornecedorResponse> listar() {
-        return repository.findAllByOrderByNomeAsc().stream()
+        Long empresaId = empresaAtualService.obterEmpresaAtual().getId();
+        return repository.findAllByEmpresa_IdOrderByNomeAsc(empresaId).stream()
                 .map(this::paraResposta)
                 .toList();
     }
@@ -33,10 +37,12 @@ public class FornecedorService {
 
     @Transactional
     public FornecedorResponse criar(FornecedorRequest requisicao) {
+        Empresa empresa = empresaAtualService.obterEmpresaAtual();
         String cnpj = normalizarDocumento(requisicao.cnpj());
         validarDocumentoUnico(cnpj, null);
 
         Fornecedor fornecedor = new Fornecedor();
+        fornecedor.setEmpresa(empresa);
         copiarDados(fornecedor, requisicao, cnpj);
         return paraResposta(repository.save(fornecedor));
     }
@@ -71,7 +77,8 @@ public class FornecedorService {
     }
 
     private Fornecedor obter(Long id) {
-        return repository.findById(id)
+        Long empresaId = empresaAtualService.obterEmpresaAtual().getId();
+        return repository.findByIdAndEmpresa_Id(id, empresaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Fornecedor não encontrado."));
     }
 
