@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Field, fieldClasses } from "@/app/components/Field";
 import FormMessage from "@/app/components/FormMessage";
-import { api, mensagemDeErro } from "@/app/lib/api";
+import api, { mensagemDeErro } from "@/app/services/api";
 import type {
   Item,
   Movimentacao,

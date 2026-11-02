@@ -1,35 +1,46 @@
-import axios from "axios";
-import { limparSessao, obterToken } from "./session";
+"use client";
 
-export const api = axios.create({
+import axios from "axios";
+import type { AppStore } from "@/app/redux/store";
+import { logout } from "@/app/redux/slices/authSlice";
+
+let store: AppStore | null = null;
+
+export function conectarStore(novaStore: AppStore | null): void {
+  store = novaStore;
+}
+
+const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// O mesmo cliente Axios inclui o token do login em cada chamada ao backend.
 api.interceptors.request.use((config) => {
-  const token = obterToken();
+  const token = store?.getState().auth.token;
   const rotaPublica = config.url?.endsWith("/auth/login")
     || config.url?.endsWith("/auth/registrar");
+
   if (token && !rotaPublica) {
     config.headers.Authorization = "Bearer " + token;
   }
   return config;
 });
 
-// Token expirado, revogado ou inválido encerra a sessão e retorna para o login.
 api.interceptors.response.use(
   (resposta) => resposta,
   (erro: unknown) => {
+    const sessaoAtiva = Boolean(store?.getState().auth.token);
     if (
       axios.isAxiosError(erro)
       && erro.response?.status === 401
       && !erro.config?.url?.endsWith("/auth/login")
+      && !erro.config?.url?.endsWith("/auth/registrar")
+      && sessaoAtiva
       && typeof window !== "undefined"
     ) {
-      limparSessao();
+      store?.dispatch(logout());
       window.location.assign("/login");
     }
     return Promise.reject(erro);
@@ -42,3 +53,5 @@ export function mensagemDeErro(erro: unknown, alternativa: string): string {
   }
   return alternativa;
 }
+
+export default api;

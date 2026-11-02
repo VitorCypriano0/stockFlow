@@ -35,6 +35,8 @@ Abra `/cadastro` no frontend para criar uma empresa e sua primeira conta adminis
 
 As senhas são gravadas como hash BCrypt. O token tem duração configurável em `JWT_EXPIRATION_MINUTES` (padrão: 60 minutos). A chave JWT deve ser a mesma enquanto houver tokens que precisem continuar válidos.
 
+No frontend, o token e os dados do usuário ficam na store Redux em memória; atualizar ou fechar a página encerra a sessão local e exige novo login. O estado do painel também é gerenciado no Redux. O serviço Axios injeta o token nas chamadas protegidas e encerra a sessão ao receber HTTP 401.
+
 ### Configuração inicial pela aplicação JavaFX
 
 Com a API em execução, configure `APP_BOOTSTRAP_KEY` no `.env` com pelo menos 32 caracteres e reinicie o backend. Na pasta `desktop`, rode `mvn javafx:run` e informe a mesma chave e os dados da empresa e do administrador. Após a criação, remova a chave do ambiente e reinicie a API. Veja [desktop/README.md](desktop/README.md) para detalhes.

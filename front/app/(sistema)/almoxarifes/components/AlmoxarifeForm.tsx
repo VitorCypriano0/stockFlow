@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import FormMessage from "@/app/components/FormMessage";
 import { Field, fieldClasses } from "@/app/components/Field";
-import { api, mensagemDeErro } from "@/app/lib/api";
+import api, { mensagemDeErro } from "@/app/services/api";
 import { cpfValido } from "@/app/lib/cpf";
 import type { Almoxarife, AlmoxarifeInput } from "@/app/types/stockflow";
 

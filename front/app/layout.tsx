@@ -1,6 +1,7 @@
 
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import StoreProvider from "@/app/redux/StoreProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,7 +16,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <StoreProvider>{children}</StoreProvider>
+      </body>
     </html>
   );
 }

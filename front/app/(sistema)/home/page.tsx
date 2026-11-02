@@ -1,75 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import PageHeader from "@/app/components/PageHeader";
-import { api, mensagemDeErro } from "@/app/lib/api";
+import { useAppDispatch, useAppSelector } from "@/app/redux/hooks";
+import { carregarDashboard } from "@/app/redux/slices/dashboardSlice";
 import { formatarDataHora } from "@/app/lib/format";
-import type { Fornecedor, Item, Movimentacao } from "@/app/types/stockflow";
-
-interface Resumo {
-  itens: number;
-  fornecedores: number;
-  estoqueBaixo: number;
-  unidades: number;
-  movimentacoesHoje: number;
-}
-
-const resumoVazio: Resumo = {
-  itens: 0,
-  fornecedores: 0,
-  estoqueBaixo: 0,
-  unidades: 0,
-  movimentacoesHoje: 0,
-};
 
 export default function HomePage() {
-  const [resumo, setResumo] = useState<Resumo>(resumoVazio);
-  const [recentes, setRecentes] = useState<Movimentacao[]>([]);
-  const [erro, setErro] = useState("");
-  const [carregando, setCarregando] = useState(true);
-
-  const carregar = useCallback(async () => {
-    try {
-      const [itensResponse, fornecedoresResponse, movimentacoesResponse] =
-        await Promise.all([
-          api.get<Item[]>("/itens"),
-          api.get<Fornecedor[]>("/fornecedores"),
-          api.get<Movimentacao[]>("/movimentacoes"),
-        ]);
-
-      const itens = itensResponse.data.filter((item) => item.ativo);
-      const fornecedores = fornecedoresResponse.data.filter(
-        (fornecedor) => fornecedor.ativo,
-      );
-      const movimentacoes = movimentacoesResponse.data.filter(
-        (movimentacao) => movimentacao.ativa,
-      );
-      const hoje = new Date().toDateString();
-
-      setResumo({
-        itens: itens.length,
-        fornecedores: fornecedores.length,
-        estoqueBaixo: itens.filter(
-          (item) => item.quantidadeEstoque <= item.estoqueMinimo,
-        ).length,
-        unidades: itens.reduce((total, item) => total + item.quantidadeEstoque, 0),
-        movimentacoesHoje: movimentacoes.filter(
-          (movimentacao) => new Date(movimentacao.dataHora).toDateString() === hoje,
-        ).length,
-      });
-      setRecentes(movimentacoes.slice(0, 5));
-      setErro("");
-    } catch (error) {
-      setErro(mensagemDeErro(error, "Não foi possível carregar a visão geral."));
-    } finally {
-      setCarregando(false);
-    }
-  }, []);
+  const dispatch = useAppDispatch();
+  const { resumo, recentes, estado, erro } = useAppSelector((state) => state.dashboard);
+  const carregando = estado === "ocioso" || estado === "carregando";
 
   useEffect(() => {
-    void carregar();
-  }, [carregar]);
+    void dispatch(carregarDashboard());
+  }, [dispatch]);
 
   const cartoes = [
     { titulo: "Itens ativos", valor: resumo.itens, detalhe: "Itens cadastrados" },

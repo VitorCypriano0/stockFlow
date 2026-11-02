@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useAppDispatch } from "@/app/redux/hooks";
+import { login } from "@/app/redux/slices/authSlice";
 import FormMessage from "@/app/components/FormMessage";
 import { Field, fieldClasses } from "@/app/components/Field";
-import { api, mensagemDeErro } from "@/app/lib/api";
-import { salvarToken } from "@/app/lib/session";
-import type { AuthResponse } from "@/app/types/stockflow";
+import { mensagemDeErro } from "@/app/services/api";
+import { loginBack } from "@/app/services/authService";
 
 export default function LoginPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
@@ -22,11 +24,8 @@ export default function LoginPage() {
     setEntrando(true);
 
     try {
-      const { data } = await api.post<AuthResponse>("/auth/login", {
-        email: email.trim(),
-        senha,
-      });
-      salvarToken(data.token);
+      const data = await loginBack(email.trim(), senha);
+      dispatch(login({ token: data.token, usuario: data.almoxarife }));
       router.replace("/home");
     } catch (error) {
       setErro(mensagemDeErro(error, "Não foi possível entrar. Confira seus dados."));

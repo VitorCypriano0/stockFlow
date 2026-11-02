@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { api } from "@/app/lib/api";
-import { limparSessao } from "@/app/lib/session";
+import api from "@/app/services/api";
+import { useAppDispatch } from "@/app/redux/hooks";
+import { logout } from "@/app/redux/slices/authSlice";
 
 export default function Header() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [saindo, setSaindo] = useState(false);
 
   async function sair() {
@@ -16,7 +18,7 @@ export default function Header() {
     } catch {
       // Encerra a sessão local mesmo quando a API estiver indisponível.
     } finally {
-      limparSessao();
+      dispatch(logout());
       router.replace("/login");
     }
   }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import PageHeader from "@/app/components/PageHeader";
-import { api, mensagemDeErro } from "@/app/lib/api";
+import api, { mensagemDeErro } from "@/app/services/api";
 import { formatarDataHora } from "@/app/lib/format";
 import type { RegistroHistorico } from "@/app/types/stockflow";
 

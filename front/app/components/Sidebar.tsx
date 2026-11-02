@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { obterPapel } from "@/app/lib/session";
+import { useAppSelector } from "@/app/redux/hooks";
 
 const links: { href: string; texto: string; admin?: boolean }[] = [
   { href: "/home", texto: "Visão geral" },
@@ -14,11 +13,7 @@ const links: { href: string; texto: string; admin?: boolean }[] = [
 ];
 
 export default function Sidebar() {
-  const [administrador, setAdministrador] = useState(false);
-
-  useEffect(() => {
-    setAdministrador(obterPapel() === "ROLE_ADMIN");
-  }, []);
+  const administrador = useAppSelector((state) => state.auth.usuario?.role === "ROLE_ADMIN");
 
   const linksVisiveis = links.filter((link) => !link.admin || administrador);
 

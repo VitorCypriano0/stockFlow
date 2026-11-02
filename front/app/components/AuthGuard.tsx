@@ -1,23 +1,20 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { obterToken } from "@/app/lib/session";
+import { useAppSelector } from "@/app/redux/hooks";
 
 export default function AuthGuard({ children }: Readonly<{ children: ReactNode }>) {
   const router = useRouter();
-  const [autorizado, setAutorizado] = useState(false);
+  const estado = useAppSelector((state) => state.auth.estado);
 
   useEffect(() => {
-    // Esconde o painel até confirmar que existe uma sessão no navegador.
-    if (!obterToken()) {
+    if (estado === "naoAutenticado") {
       router.replace("/login");
-      return;
     }
-    setAutorizado(true);
-  }, [router]);
+  }, [estado, router]);
 
-  if (!autorizado) {
+  if (estado !== "autenticado") {
     return <main className="p-8 text-sm text-slate-600">Verificando sessão...</main>;
   }
 
