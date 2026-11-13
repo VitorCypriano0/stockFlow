@@ -1,8 +1,11 @@
 package br.com.stockflow.application.services;
 
 import br.com.stockflow.application.dto.AlmoxarifeAutenticado;
+import br.com.stockflow.application.dto.LoginRequest;
+import br.com.stockflow.application.exceptions.CredenciaisInvalidasException;
 import br.com.stockflow.domain.entities.Almoxarife;
 import br.com.stockflow.domain.entities.Token;
+import br.com.stockflow.domain.repository.AlmoxarifeRepository;
 import br.com.stockflow.domain.repository.TokenRepository;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
@@ -11,10 +14,10 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.List;
+import java.util.Locale;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,26 +27,41 @@ public class TokenService {
     private static final String EMISSOR = "stockflow";
 
     private final TokenRepository tokenRepository;
+    private final AlmoxarifeRepository almoxarifeRepository;
     private final Algorithm algoritmo;
     private final JWTVerifier verificador;
+    private final long validadeEmMinutos;
 
     public TokenService(
             TokenRepository tokenRepository,
-            @Value("${spring.secretkey}") String segredo
+            AlmoxarifeRepository almoxarifeRepository,
+            @Value("${spring.secretkey}") String segredo,
+            @Value("${spring.tempo_expiracao}") long validadeEmMinutos
     ) {
         if (segredo.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException("JWT_SECRET deve ter pelo menos 32 bytes.");
         }
 
         this.tokenRepository = tokenRepository;
+        this.almoxarifeRepository = almoxarifeRepository;
         this.algoritmo = Algorithm.HMAC256(segredo);
         this.verificador = JWT.require(algoritmo)
                 .withIssuer(EMISSOR)
                 .build();
+        if (validadeEmMinutos <= 0) {
+            throw new IllegalArgumentException("spring.tempo_expiracao deve ser maior que zero.");
+        }
+        this.validadeEmMinutos = validadeEmMinutos;
     }
 
     @Transactional
-    public String gerarToken(Almoxarife almoxarife, Instant emitidoEm, Instant expiraEm) {
+    public String gerarToken(LoginRequest requisicao) {
+        String email = requisicao.email().trim().toLowerCase(Locale.ROOT);
+        Almoxarife almoxarife = almoxarifeRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(CredenciaisInvalidasException::new);
+        Instant emitidoEm = Instant.now();
+        Instant expiraEm = emitidoEm.plus(validadeEmMinutos, ChronoUnit.MINUTES);
+
         String token = JWT.create()
                 .withIssuer(EMISSOR)
                 .withSubject(almoxarife.getEmail())
@@ -71,13 +89,7 @@ public class TokenService {
             throw tokenInvalido();
         }
 
-        return new AlmoxarifeAutenticado(
-                almoxarife.getId(),
-                almoxarife.getEmail(),
-                almoxarife.getEmpresa() == null ? null : almoxarife.getEmpresa().getId(),
-                tokenSalvo.getId(),
-                List.of(new SimpleGrantedAuthority(almoxarife.getRole()))
-        );
+        return new AlmoxarifeAutenticado(almoxarife, tokenSalvo.getId());
     }
 
     @Transactional

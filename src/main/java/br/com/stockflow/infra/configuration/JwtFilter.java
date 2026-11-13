@@ -1,7 +1,7 @@
 package br.com.stockflow.infra.configuration;
 
 import br.com.stockflow.application.services.TokenService;
-import com.auth0.jwt.exceptions.JWTException;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -62,7 +62,7 @@ public class JwtFilter extends OncePerRequestFilter {
                     almoxarife.authorities()
             );
             SecurityContextHolder.getContext().setAuthentication(autenticacao);
-        } catch (JWTException erro) {
+        } catch (JWTVerificationException erro) {
             SecurityContextHolder.clearContext();
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token de autenticação inválido.");
             return;

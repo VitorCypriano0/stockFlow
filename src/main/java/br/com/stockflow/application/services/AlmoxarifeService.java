@@ -4,15 +4,20 @@ import br.com.stockflow.application.dto.AlmoxarifeRequest;
 import br.com.stockflow.application.dto.AlmoxarifeResponse;
 import br.com.stockflow.application.dto.BootstrapRequest;
 import br.com.stockflow.application.dto.BootstrapResponse;
-import br.com.stockflow.domain.entities.Almoxarife;
-import br.com.stockflow.domain.entities.Empresa;
+import br.com.stockflow.application.dto.LoginRequest;
+import br.com.stockflow.application.dto.LoginResponse;
+import br.com.stockflow.application.dto.AlmoxarifeAutenticado;
 import br.com.stockflow.application.exceptions.ConflitoException;
+import br.com.stockflow.application.exceptions.CredenciaisInvalidasException;
 import br.com.stockflow.application.exceptions.RegraNegocioException;
 import br.com.stockflow.application.exceptions.RecursoNaoEncontradoException;
+import br.com.stockflow.domain.entities.Almoxarife;
+import br.com.stockflow.domain.entities.Empresa;
 import br.com.stockflow.domain.repository.AlmoxarifeRepository;
 import br.com.stockflow.domain.repository.EmpresaRepository;
 import br.com.stockflow.domain.validation.CpfValidador;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,17 +32,51 @@ public class AlmoxarifeService {
     private final EmpresaRepository empresaRepository;
     private final EmpresaAtualService empresaAtualService;
     private final PasswordEncoder passwordEncoder;
+    private final TokenService tokenService;
 
     public AlmoxarifeService(
             AlmoxarifeRepository repository,
             EmpresaRepository empresaRepository,
             EmpresaAtualService empresaAtualService,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            TokenService tokenService
     ) {
         this.repository = repository;
         this.empresaRepository = empresaRepository;
         this.empresaAtualService = empresaAtualService;
         this.passwordEncoder = passwordEncoder;
+        this.tokenService = tokenService;
+    }
+
+    @Transactional
+    public LoginResponse validarAlmoxarifeAutenticadoRetornaToken(LoginRequest requisicao) {
+        if (requisicao == null
+                || requisicao.email() == null
+                || requisicao.email().isBlank()
+                || requisicao.senha() == null
+                || requisicao.senha().isBlank()) {
+            throw new CredenciaisInvalidasException();
+        }
+
+        String email = requisicao.email().trim().toLowerCase(Locale.ROOT);
+        boolean credenciaisValidas = repository.findByEmailIgnoreCase(email)
+                .filter(Almoxarife::isAtivo)
+                .filter(usuario -> !usuario.isBloqueado())
+                .filter(usuario -> usuario.getSenhaHash() != null
+                        && passwordEncoder.matches(requisicao.senha(), usuario.getSenhaHash()))
+                .isPresent();
+        if (!credenciaisValidas) {
+            throw new CredenciaisInvalidasException();
+        }
+
+        return new LoginResponse(tokenService.gerarToken(requisicao));
+    }
+
+    @Transactional(readOnly = true)
+    public AlmoxarifeResponse buscarAutenticado(AlmoxarifeAutenticado almoxarifeAutenticado) {
+        Almoxarife almoxarife = repository.findById(almoxarifeAutenticado.id())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Almoxarife autenticado não encontrado."));
+        return paraResposta(almoxarife);
     }
 
     @Transactional(readOnly = true)
@@ -69,7 +108,7 @@ public class AlmoxarifeService {
             throw new ConflitoException("Já existe um almoxarife com este e-mail.");
         }
 
-        Almoxarife almoxarife = new Almoxarife();
+        Almoxarife almoxarife = new Almoxarife(requisicao);
         copiarDados(almoxarife, requisicao, cpf, email);
         almoxarife.setEmpresa(empresa);
         almoxarife.setSenhaHash(passwordEncoder.encode(requisicao.senha()));

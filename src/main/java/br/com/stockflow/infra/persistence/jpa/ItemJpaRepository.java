@@ -4,7 +4,9 @@ import br.com.stockflow.domain.entities.Item;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public interface ItemJpaRepository extends JpaRepository<Item, Long> {
 
     boolean existsByCodigoIgnoreCase(String codigo);

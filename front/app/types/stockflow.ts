@@ -17,10 +17,12 @@ export interface AlmoxarifeInput {
   senha?: string;
 }
 
-export interface AuthResponse {
+export interface LoginResponse {
   token: string;
-  tipo: "Bearer";
-  expiraEm: string;
+}
+
+export interface LoginSession {
+  token: string;
   almoxarife: Almoxarife;
 }
 
