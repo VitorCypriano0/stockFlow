@@ -39,7 +39,7 @@ public class TokenService {
             @Value("${spring.tempo_expiracao}") long validadeEmMinutos
     ) {
         if (segredo.getBytes(StandardCharsets.UTF_8).length < 32) {
-            throw new IllegalStateException("JWT_SECRET deve ter pelo menos 32 bytes.");
+            throw new IllegalStateException("spring.secretkey deve ter pelo menos 32 bytes.");
         }
 
         this.tokenRepository = tokenRepository;

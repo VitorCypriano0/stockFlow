@@ -14,15 +14,9 @@ O backend usa Spring Boot com a separação controller, service, repository, ent
 
 ## Banco de dados e segredo do JWT
 
-O backend usa PostgreSQL e espera o banco `cafeteria` disponível em `localhost`. Não mantenha a senha do banco nem a chave de assinatura JWT no Git. A configuração carrega `JWT_SECRET` e `JWT_EXPIRATION_MINUTES` nas propriedades `spring.secretkey` e `spring.tempo_expiracao`, seguindo os nomes usados pelo projeto de referência.
+O backend usa PostgreSQL no banco `stockflow`, em `localhost:5432`. A URL, o usuário e a senha estão em `src/main/resources/application.properties`; ajuste esses valores se o PostgreSQL local usar outros dados. O Hibernate atualiza o esquema com `ddl-auto=update`, e o SQL fica visível no console durante o desenvolvimento.
 
-1. Copie `.env.example` para `.env` na raiz.
-2. Ajuste `DATABASE_URL`, `DATABASE_USERNAME` e `DATABASE_PASSWORD` para o PostgreSQL local.
-3. Gere uma chave aleatória com pelo menos 32 bytes e coloque o resultado em `JWT_SECRET`. No PowerShell, gere uma chave com:
-
-       [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
-
-O Spring Boot carrega esse `.env` local. O Hibernate atualiza o esquema com `ddl-auto=update`, e o SQL fica visível no console durante o desenvolvimento. PostgreSQL é selecionado automaticamente pelo driver; não configure `HSQLDialect`, que corresponde a outro banco.
+A chave de assinatura JWT fica na propriedade `spring.secretkey` do mesmo arquivo. Ela deve ter pelo menos 32 bytes e permanecer igual enquanto houver tokens que precisem continuar válidos. A validade dos tokens fica em `spring.tempo_expiracao` (em minutos).
 
 ## Login e autenticação
 
@@ -30,16 +24,16 @@ Abra `/cadastro` no frontend para criar uma empresa e sua primeira conta adminis
 
 - `POST /api/auth/registrar`: cria uma empresa com sua primeira conta administradora ou ativa um registro antigo sem senha.
 - `POST /api/auth/login`: valida e-mail e senha e devolve um token JWT do tipo Bearer.
-- `POST /api/bootstrap/admin`: cria a primeira empresa e o primeiro administrador usando a chave `APP_BOOTSTRAP_KEY`; só fica disponível enquanto não houver administrador no banco.
+- `POST /api/bootstrap/admin`: cria a primeira empresa e o primeiro administrador usando a propriedade `app.bootstrap.key`; só fica disponível enquanto não houver administrador no banco.
 - As rotas de negócio exigem `Authorization: Bearer <token>` e isolam os dados por empresa. O gerenciamento de almoxarifes é restrito a administradores.
 
-As senhas são gravadas como hash BCrypt. O token tem duração configurável em `JWT_EXPIRATION_MINUTES` (padrão: 60 minutos). A chave JWT deve ser a mesma enquanto houver tokens que precisem continuar válidos. Cada token emitido é registrado no banco e validado contra esse registro; o logout remove a sessão correspondente.
+As senhas são gravadas como hash BCrypt. Cada token emitido é registrado no banco e validado contra esse registro; o logout remove a sessão correspondente.
 
 No frontend, o token e os dados do usuário ficam na store Redux em memória; atualizar ou fechar a página encerra a sessão local e exige novo login. O estado do painel também é gerenciado no Redux. O serviço Axios injeta o token nas chamadas protegidas e encerra a sessão ao receber HTTP 401.
 
 ### Configuração inicial pela aplicação JavaFX
 
-Com a API em execução, configure `APP_BOOTSTRAP_KEY` no `.env` com pelo menos 32 caracteres e reinicie o backend. Na pasta `desktop`, rode `mvn javafx:run` e informe a mesma chave e os dados da empresa e do administrador. Após a criação, remova a chave do ambiente e reinicie a API. Veja [desktop/README.md](desktop/README.md) para detalhes.
+Com a API em execução, preencha `app.bootstrap.key` em `src/main/resources/application.properties` com pelo menos 32 caracteres e reinicie o backend. Na pasta `desktop`, rode `mvn javafx:run` e informe a mesma chave e os dados da empresa e do administrador. Depois da criação, apague o valor da propriedade e reinicie a API. Veja [desktop/README.md](desktop/README.md) para detalhes.
 
 ## Documentação da API
 
@@ -59,14 +53,13 @@ O botão **Authorize** envia o JWT apenas nas operações marcadas como protegid
 
 Requisitos: JDK 17, PostgreSQL, Node.js 20.9 ou superior e npm.
 
-1. Configure `.env` como descrito acima e confirme que o banco `cafeteria` existe.
+1. Confirme que o banco `stockflow` existe e confira os dados de conexão em `src/main/resources/application.properties`.
 2. Inicie o backend na raiz do projeto:
 
        .\mvnw.cmd spring-boot:run
 
-3. Em outro terminal, configure o endereço da API para o frontend e inicie o Next.js:
+3. Em outro terminal, inicie o Next.js:
 
-       Copy-Item front\.env.example front\.env.local
        cd front
        npm.cmd install
        npm.cmd run dev

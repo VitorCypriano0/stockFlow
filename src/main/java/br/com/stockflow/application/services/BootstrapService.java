@@ -32,7 +32,7 @@ public class BootstrapService {
         if (chaveConfigurada.length() < 32 || chaveEsperada.length < 32) {
             throw new ResponseStatusException(
                     HttpStatus.SERVICE_UNAVAILABLE,
-                    "O bootstrap está desabilitado. Configure APP_BOOTSTRAP_KEY com pelo menos 32 caracteres."
+                    "O bootstrap está desabilitado. Configure app.bootstrap.key com pelo menos 32 caracteres em application.properties."
             );
         }
 
