@@ -10,7 +10,7 @@ FROM eclipse-temurin:21-jre-jammy
 
 WORKDIR /app
 
-COPY --from=builder /app/target/stockFlow-0.0.1-SNAPSHOT.jar .
+COPY --from=builder /app/target/stockflow-0.0.1-SNAPSHOT.jar .
 
 EXPOSE 8080
 
