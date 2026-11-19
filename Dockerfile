@@ -14,4 +14,4 @@ COPY --from=builder /app/target/stockFlow-0.0.1-SNAPSHOT.jar .
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar","stockFlow-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java", "-jar","stockflow-0.0.1-SNAPSHOT.jar"]
