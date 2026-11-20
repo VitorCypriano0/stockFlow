@@ -10,3 +10,5 @@ public class StockFlowApplication {
         SpringApplication.run(StockFlowApplication.class, args);
     }
 }
+
+//teste
